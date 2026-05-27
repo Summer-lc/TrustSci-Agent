@@ -1,0 +1,7 @@
+material_id,formula,space_group,ionic_conductivity_log10_s_cm,stability_window_v,source
+mp-demo-001,Li7La3Zr2O12,Ia-3d,-3.2,5.1,synthetic_demo
+mp-demo-002,Li10GeP2S12,P42/nmc,-2.1,3.8,synthetic_demo
+mp-demo-003,Li3OCl,Pm-3m,-4.4,4.6,synthetic_demo
+mp-demo-004,Na3PS4,I-43m,-3.8,3.2,synthetic_demo
+mp-demo-005,Li6PS5Cl,F-43m,-2.7,3.0,synthetic_demo
+

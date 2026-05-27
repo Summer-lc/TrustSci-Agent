@@ -1,0 +1,32 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    env_file:
+      - ./.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      NEXT_PUBLIC_API_BASE: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  browser-worker:
+    build:
+      context: ./browser-worker
+    ports:
+      - "8010:8010"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+

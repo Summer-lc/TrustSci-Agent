@@ -1,0 +1,12 @@
+# Submission Checklist
+
+- Technical proposal PDF no longer than 20 pages.
+- Source code with backend, frontend, browser-worker, Docker Compose, and README.
+- `.env.example` with Bailian/Qwen configuration.
+- Screenshot or credential proof of Bailian model calls.
+- A fixed demo run output in `data/outputs/reports`.
+- Evidence ledger and citation audit log.
+- Optional interactive frontend page.
+- Optional 10-minute demo video.
+- Compressed package named according to the contest instruction.
+
