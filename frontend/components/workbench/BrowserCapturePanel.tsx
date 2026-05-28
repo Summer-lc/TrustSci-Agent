@@ -1,0 +1,42 @@
+import { Globe, RefreshCw } from "lucide-react";
+import { BrowserCaptureResult } from "../../lib/api";
+
+export function BrowserCapturePanel({
+  url,
+  result,
+  busy,
+  error,
+  onUrlChange,
+  onCapture
+}: {
+  url: string;
+  result: BrowserCaptureResult | null;
+  busy: boolean;
+  error: string;
+  onUrlChange: (value: string) => void;
+  onCapture: () => void;
+}) {
+  return (
+    <section className="panel span-6">
+      <h2><Globe size={16} /> Browser Capture</h2>
+      <div className="inline-form">
+        <input className="input" value={url} onChange={(event) => onUrlChange(event.target.value)} />
+        <button className="secondary" onClick={onCapture} disabled={busy}>
+          {busy ? <RefreshCw size={15} /> : <Globe size={15} />}
+          Capture
+        </button>
+      </div>
+      {error && <p className="muted warn-text">{error}</p>}
+      {result && (
+        <div className="dense">
+          <div className="item-title">{result.title}</div>
+          <div className="item-meta">{result.domain} · {result.status_code || "n/a"}</div>
+          <p className="muted">HTML {result.html_path}</p>
+          <p className="muted">Screenshot {result.screenshot_path}</p>
+          <p className="muted">PDF links {result.pdf_links.length} · downloads {result.downloaded_pdfs.length}</p>
+        </div>
+      )}
+    </section>
+  );
+}
+

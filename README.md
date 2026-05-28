@@ -84,6 +84,7 @@ curl -X POST http://localhost:8000/api/runs \
 6. `GET /api/runs/{run_id}/report/export`
 
 See `docs/API.md` for the current FastAPI route surface.
+See `docs/FRONTEND.md` for the current Next.js component structure.
 
 ## Current MVP Capabilities
 

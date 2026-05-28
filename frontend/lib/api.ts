@@ -1,5 +1,53 @@
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 
+export type PublicConfig = {
+  qwen_model: string;
+  llm_enabled: boolean;
+  dashscope_base_url: string;
+  max_papers: number;
+  data_dir: string;
+  browser_worker_url: string;
+  materials_project_configured: boolean;
+  cors_origins: string[];
+};
+
+export type DatasetProfile = {
+  name: string;
+  source: string;
+  source_url?: string;
+  rows?: number;
+  fields: string[];
+  target?: string;
+  task_type: string;
+  availability: string;
+  notes: string;
+};
+
+export type BaselineResultCard = {
+  name: string;
+  dataset: string;
+  target: string;
+  model: string;
+  train_rows: number;
+  test_rows: number;
+  metrics: Record<string, number>;
+  result_summary: string;
+  artifact_path?: string;
+};
+
+export type BrowserCaptureResult = {
+  trace_id: string;
+  url: string;
+  domain: string;
+  status_code?: number;
+  title: string;
+  html_path: string;
+  screenshot_path: string;
+  links: Array<Record<string, string>>;
+  pdf_links: Array<Record<string, string>>;
+  downloaded_pdfs: Array<Record<string, string | number>>;
+};
+
 export type ResearchRun = {
   run_id: string;
   domain: string;
@@ -24,28 +72,8 @@ export type ResearchRun = {
     verified: boolean;
     quote_or_summary: string;
   }>;
-  data_profiles: Array<{
-    name: string;
-    source: string;
-    source_url?: string;
-    rows?: number;
-    fields: string[];
-    target?: string;
-    task_type: string;
-    availability: string;
-    notes: string;
-  }>;
-  baseline_result_card?: {
-    name: string;
-    dataset: string;
-    target: string;
-    model: string;
-    train_rows: number;
-    test_rows: number;
-    metrics: Record<string, number>;
-    result_summary: string;
-    artifact_path?: string;
-  };
+  data_profiles: DatasetProfile[];
+  baseline_result_card?: BaselineResultCard;
   hypotheses: Array<{
     hypothesis_id: string;
     statement: string;
@@ -85,10 +113,25 @@ export type ResearchRun = {
   };
 };
 
+async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    cache: "no-store",
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(init?.headers || {})
+    }
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Request failed: ${response.status}`);
+  }
+  return (await response.json()) as T;
+}
+
 export async function createRun(question: string, domain: string, maxPapers: number) {
-  const response = await fetch(`${API_BASE}/api/runs`, {
+  return requestJson<ResearchRun>(`${API_BASE}/api/runs`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       domain,
       question,
@@ -100,18 +143,39 @@ export async function createRun(question: string, domain: string, maxPapers: num
       }
     })
   });
-  if (!response.ok) throw new Error("Failed to create run");
-  return (await response.json()) as ResearchRun;
 }
 
 export async function startRun(runId: string) {
-  const response = await fetch(`${API_BASE}/api/runs/${runId}/start`, { method: "POST" });
-  if (!response.ok) throw new Error("Failed to start run");
-  return (await response.json()) as ResearchRun;
+  return requestJson<ResearchRun>(`${API_BASE}/api/runs/${runId}/start`, { method: "POST" });
 }
 
 export async function getRun(runId: string) {
-  const response = await fetch(`${API_BASE}/api/runs/${runId}`, { cache: "no-store" });
-  if (!response.ok) throw new Error("Failed to load run");
-  return (await response.json()) as ResearchRun;
+  return requestJson<ResearchRun>(`${API_BASE}/api/runs/${runId}`);
+}
+
+export async function listRuns() {
+  return requestJson<ResearchRun[]>(`${API_BASE}/api/runs`);
+}
+
+export async function getPublicConfig() {
+  return requestJson<PublicConfig>(`${API_BASE}/api/system/config`);
+}
+
+export async function getDataProfiles() {
+  return requestJson<DatasetProfile[]>(`${API_BASE}/api/data/profiles`);
+}
+
+export async function runBaseline() {
+  return requestJson<BaselineResultCard>(`${API_BASE}/api/data/baseline`, { method: "POST" });
+}
+
+export async function captureBrowserPage(url: string) {
+  return requestJson<BrowserCaptureResult>(`${API_BASE}/api/browser/capture`, {
+    method: "POST",
+    body: JSON.stringify({ url, download_pdfs: true, max_pdf_downloads: 3 })
+  });
+}
+
+export function reportExportUrl(runId: string, format: "md" | "json" = "md") {
+  return `${API_BASE}/api/runs/${runId}/report/export?format=${format}`;
 }
