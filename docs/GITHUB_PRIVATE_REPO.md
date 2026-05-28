@@ -1,8 +1,14 @@
 # GitHub Private Repository Setup
 
-The local repository is private on this machine until a remote is added.
+The repository is now connected to:
 
-This environment currently has no authenticated GitHub CLI or token. Use one of these options.
+```bash
+git@github.com:maodousa/TrustSci-Agent.git
+```
+
+Keep the GitHub repository private and invite collaborators with push permission only when needed.
+
+If another machine needs to recreate the setup, use one of these options.
 
 ## Option A: GitHub CLI
 
@@ -47,4 +53,3 @@ curl -sS -X PUT -H "Authorization: Bearer $GITHUB_TOKEN" \
 ```
 
 Never commit `.env` or tokens. The repo already ignores `.env`, `node_modules`, build outputs, local reference clones, and generated reports.
-

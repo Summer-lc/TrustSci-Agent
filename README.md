@@ -31,6 +31,31 @@ Then open:
 
 Without `DASHSCOPE_API_KEY`, the system runs in deterministic demo mode. With a Bailian/Qwen-compatible key, the `QwenClient` calls the configured OpenAI-compatible endpoint.
 
+## Docker Development
+
+For day-to-day development on Linux or Windows WSL2:
+
+```bash
+cp .env.example .env
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+
+Or use the Makefile:
+
+```bash
+make dev
+```
+
+The dev stack enables backend/browser-worker reload and Next.js polling-friendly file watching for WSL. Frontend dependencies and `.next` cache live in Docker named volumes so Windows filesystem performance does not pollute the repo.
+
+Useful commands:
+
+```bash
+make down
+make logs
+make ps
+```
+
 ## Backend Development
 
 ```bash
@@ -74,4 +99,4 @@ curl -X POST http://localhost:8000/api/runs \
 
 ## Important Privacy Note
 
-This repository is initialized locally only. No GitHub remote is configured by default, so it remains visible only on this machine unless you explicitly add a private remote later. See `docs/GITHUB_PRIVATE_REPO.md` for private repo creation and collaborator invitation commands.
+This repository is connected to the private GitHub remote `git@github.com:maodousa/TrustSci-Agent.git`. See `docs/DEVELOPMENT_WORKFLOW.md` for the daily pull/test/push rhythm.
