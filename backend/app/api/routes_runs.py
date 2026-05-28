@@ -1,4 +1,3 @@
-import asyncio
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
@@ -6,10 +5,15 @@ from fastapi.responses import FileResponse
 
 from app.config import get_settings
 from app.schemas.common import RunStatus
+from app.schemas.data import BaselineResultCard, DatasetProfile
+from app.schemas.evidence import EvidenceItem
+from app.schemas.hypothesis import Hypothesis
+from app.schemas.paper import Paper
+from app.schemas.report import ResearchReport
 from app.schemas.run import ResearchRun, ResearchRunCreate
 from app.storage.in_memory import run_store
-from app.workflows.scientist_workflow import ScientistWorkflow
 from app.tools.llm_logger import read_llm_logs
+from app.workflows.scientist_workflow import ScientistWorkflow
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
 
@@ -55,13 +59,28 @@ async def run_sync(run_id: str) -> ResearchRun:
     return await ScientistWorkflow(get_settings()).run(run)
 
 
-@router.get("/{run_id}/evidence")
-async def get_evidence(run_id: str):
+@router.get("/{run_id}/papers", response_model=list[Paper])
+async def get_papers(run_id: str) -> list[Paper]:
+    return _must_get_run(run_id).papers
+
+
+@router.get("/{run_id}/evidence", response_model=list[EvidenceItem])
+async def get_evidence(run_id: str) -> list[EvidenceItem]:
     return _must_get_run(run_id).evidence
 
 
-@router.get("/{run_id}/hypotheses")
-async def get_hypotheses(run_id: str):
+@router.get("/{run_id}/data-profiles", response_model=list[DatasetProfile])
+async def get_run_data_profiles(run_id: str) -> list[DatasetProfile]:
+    return _must_get_run(run_id).data_profiles
+
+
+@router.get("/{run_id}/baseline-result", response_model=BaselineResultCard | None)
+async def get_run_baseline_result(run_id: str) -> BaselineResultCard | None:
+    return _must_get_run(run_id).baseline_result_card
+
+
+@router.get("/{run_id}/hypotheses", response_model=list[Hypothesis])
+async def get_hypotheses(run_id: str) -> list[Hypothesis]:
     return _must_get_run(run_id).hypotheses
 
 
@@ -69,6 +88,37 @@ async def get_hypotheses(run_id: str):
 async def get_llm_calls(run_id: str):
     _must_get_run(run_id)
     return read_llm_logs(get_settings().data_dir, run_id)
+
+
+@router.get("/{run_id}/report", response_model=ResearchReport)
+async def get_report(run_id: str) -> ResearchReport:
+    run = _must_get_run(run_id)
+    if run.report is None:
+        raise HTTPException(status_code=404, detail="report not generated")
+    return run.report
+
+
+@router.get("/{run_id}/artifacts")
+async def list_artifacts(run_id: str) -> dict:
+    _must_get_run(run_id)
+    settings = get_settings()
+    artifact_roots = {
+        "reports": settings.data_dir / "outputs" / "reports",
+        "llm_calls": settings.data_dir / "outputs" / "llm_calls",
+        "result_cards": settings.data_dir / "outputs" / "result_cards",
+        "browser_traces": settings.data_dir / "browser_traces",
+    }
+    artifacts = {}
+    for name, root in artifact_roots.items():
+        if not root.exists():
+            artifacts[name] = []
+            continue
+        artifacts[name] = [
+            str(path)
+            for path in sorted(root.glob(f"*{run_id}*") if name != "result_cards" else root.glob("*"))
+            if path.is_file()
+        ]
+    return {"run_id": run_id, "artifacts": artifacts}
 
 
 @router.post("/{run_id}/hypotheses/{hypothesis_id}/select", response_model=ResearchRun)
@@ -96,7 +146,9 @@ async def export_report(run_id: str, format: str = "md"):
         if run.report is None:
             raise HTTPException(status_code=404, detail="report not generated")
         return run.report
-    path = Path("data/outputs/reports") / f"{run_id}.md"
+    if format != "md":
+        raise HTTPException(status_code=400, detail="format must be md or json")
+    path = get_settings().data_dir / "outputs" / "reports" / f"{run_id}.md"
     if not path.exists():
         raise HTTPException(status_code=404, detail="markdown report not found")
     return FileResponse(path, media_type="text/markdown", filename=f"{run_id}.md")

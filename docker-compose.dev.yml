@@ -7,6 +7,7 @@ services:
       - ./data:/app/data
     environment:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001}
+      BROWSER_WORKER_URL: ${BROWSER_WORKER_URL:-http://browser-worker:8010}
 
   frontend:
     build:
@@ -31,4 +32,3 @@ services:
 volumes:
   frontend_node_modules:
   frontend_next_cache:
-

@@ -83,6 +83,8 @@ curl -X POST http://localhost:8000/api/runs \
 5. `GET /api/runs/{run_id}/hypotheses`
 6. `GET /api/runs/{run_id}/report/export`
 
+See `docs/API.md` for the current FastAPI route surface.
+
 ## Current MVP Capabilities
 
 - Planner Agent creates search queries and a workflow plan.

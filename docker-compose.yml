@@ -14,6 +14,7 @@ services:
       OPENALEX_EMAIL: ${OPENALEX_EMAIL:-}
       MAX_PAPERS: ${MAX_PAPERS:-6}
       MATERIALS_PROJECT_API_KEY: ${MATERIALS_PROJECT_API_KEY:-}
+      BROWSER_WORKER_URL: ${BROWSER_WORKER_URL:-http://browser-worker:8010}
       DATA_DIR: /app/data
     ports:
       - "${BACKEND_PORT:-8000}:8000"
@@ -37,6 +38,8 @@ services:
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
+      browser-worker:
+        condition: service_healthy
       backend:
         condition: service_healthy
     healthcheck:
