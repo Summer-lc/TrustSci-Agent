@@ -9,19 +9,19 @@ from app.agents.report_writer_agent import ReportWriterAgent
 from app.agents.scientific_data_agent import ScientificDataAgent
 from app.config import Settings
 from app.evidence.ledger import evidence_from_papers
+from app.llm.registry import build_llm_client
 from app.schemas.common import AgentStep, RunStatus, utc_now
 from app.schemas.hypothesis import Hypothesis
 from app.schemas.run import ResearchRun
 from app.storage.in_memory import run_store
 from app.tools.crossref_client import CrossrefClient
 from app.tools.openalex_client import OpenAlexClient
-from app.tools.qwen_client import QwenClient
 
 
 class ScientistWorkflow:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
-        self.llm = QwenClient(settings)
+        self.llm = build_llm_client(settings)
         self.openalex = OpenAlexClient(settings)
         self.crossref = CrossrefClient()
         self.planner = PlannerAgent(self.llm)

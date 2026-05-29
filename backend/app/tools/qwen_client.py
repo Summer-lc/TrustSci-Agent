@@ -8,6 +8,7 @@ from uuid import uuid4
 import httpx
 
 from app.config import Settings
+from app.llm.interface import LLMRequest, LLMResponse, LLMResponseFormat
 from app.schemas.common import utc_now
 from app.schemas.llm import LLMCallLog
 from app.tools.llm_logger import LLMLogger
@@ -19,6 +20,8 @@ class QwenClient:
     The client never stores API keys in logs. It records prompts, responses,
     token usage, latency, and fallback/error status for contest audit evidence.
     """
+
+    provider = "bailian-qwen"
 
     def __init__(self, settings: Settings, transport: httpx.AsyncBaseTransport | None = None) -> None:
         self.settings = settings
@@ -44,6 +47,36 @@ class QwenClient:
             parser=_parse_json_content,
         )
         return result if isinstance(result, dict) else fallback
+
+    async def complete(self, request: LLMRequest) -> LLMResponse:
+        if request.response_format == LLMResponseFormat.text:
+            fallback = str(request.fallback)
+            content = await self.chat_text(
+                request.system,
+                request.user,
+                fallback,
+                run_id=request.run_id,
+                agent=request.agent,
+            )
+        else:
+            fallback = (
+                request.fallback
+                if isinstance(request.fallback, dict)
+                else {"value": request.fallback}
+            )
+            content = await self.chat_json(
+                request.system,
+                request.user,
+                fallback,
+                run_id=request.run_id,
+                agent=request.agent,
+            )
+        return LLMResponse(
+            content=content,
+            provider=self.provider,
+            model=self.settings.qwen_model,
+            fallback_used=content == fallback,
+        )
 
     async def chat_text(
         self,

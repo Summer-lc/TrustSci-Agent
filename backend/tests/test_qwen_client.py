@@ -5,6 +5,7 @@ import httpx
 import pytest
 
 from app.config import Settings
+from app.llm.interface import LLMRequest, LLMResponseFormat
 from app.tools.qwen_client import QwenClient
 
 
@@ -59,3 +60,21 @@ async def test_chat_text_returns_mocked_content(tmp_path: Path) -> None:
 
     assert result == "TrustSci Qwen connection ok."
 
+
+@pytest.mark.asyncio
+async def test_complete_normalizes_json_fallback(tmp_path: Path) -> None:
+    settings = Settings(dashscope_api_key="", data_dir=tmp_path)
+    client = QwenClient(settings)
+
+    response = await client.complete(
+        LLMRequest(
+            system="system",
+            user="user",
+            fallback="offline",
+            response_format=LLMResponseFormat.json,
+            run_id="run_test",
+        )
+    )
+
+    assert response.content == {"value": "offline"}
+    assert response.fallback_used is True

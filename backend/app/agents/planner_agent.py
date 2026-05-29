@@ -1,9 +1,9 @@
 from app.schemas.run import ResearchRun
-from app.tools.qwen_client import QwenClient
+from app.llm.interface import LLMClient, LLMRequest
 
 
 class PlannerAgent:
-    def __init__(self, llm: QwenClient) -> None:
+    def __init__(self, llm: LLMClient) -> None:
         self.llm = llm
 
     async def run(self, run: ResearchRun) -> dict:
@@ -27,10 +27,13 @@ class PlannerAgent:
                 "write competition report",
             ],
         }
-        return await self.llm.chat_json(
-            "You are a scientific research planner. Return compact JSON only.",
-            f"Domain: {run.domain}\nQuestion: {run.question}\nDesign a verifiable AI Scientist workflow.",
-            fallback,
-            run_id=run.run_id,
-            agent="planner",
+        response = await self.llm.complete(
+            LLMRequest(
+                system="You are a scientific research planner. Return compact JSON only.",
+                user=f"Domain: {run.domain}\nQuestion: {run.question}\nDesign a verifiable AI Scientist workflow.",
+                fallback=fallback,
+                run_id=run.run_id,
+                agent="planner",
+            )
         )
+        return response.content if isinstance(response.content, dict) else fallback
