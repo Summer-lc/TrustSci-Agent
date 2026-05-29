@@ -85,6 +85,7 @@ curl -X POST http://localhost:8000/api/runs \
 
 See `docs/API.md` for the current FastAPI route surface.
 See `docs/FRONTEND.md` for the current Next.js component structure.
+See `docs/BAILIAN_QWEN.md` for Bailian/Qwen API configuration and ping checks.
 
 ## Current MVP Capabilities
 
@@ -93,6 +94,7 @@ See `docs/FRONTEND.md` for the current Next.js component structure.
 - Crossref verifies DOI/title metadata.
 - Evidence Ledger binds claims to source papers.
 - Qwen/Bailian calls are logged to `data/outputs/llm_calls/{run_id}.jsonl`.
+- Qwen/Bailian connectivity can be checked with `POST /api/system/qwen/ping`.
 - Scientific Data Agent profiles Matbench metadata, an optional Materials Project adapter, and the bundled solid-electrolyte CSV.
 - A deterministic baseline result card is written to `data/outputs/result_cards/`.
 - Hypothesis Generator creates three candidate hypotheses.

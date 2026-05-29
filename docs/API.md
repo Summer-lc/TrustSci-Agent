@@ -11,6 +11,7 @@ http://localhost:8000/docs
 - `GET /health`
 - `GET /api/system/health`
 - `GET /api/system/config`
+- `POST /api/system/qwen/ping`
 
 ## Runs
 
@@ -42,4 +43,3 @@ http://localhost:8000/docs
 - `POST /api/browser/capture`
 
 The browser endpoint proxies to `browser-worker`. In Docker, use the default `BROWSER_WORKER_URL=http://browser-worker:8010`. For local backend development outside Docker, set `BROWSER_WORKER_URL=http://localhost:8010`.
-

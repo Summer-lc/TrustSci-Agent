@@ -17,6 +17,7 @@ def test_system_health_and_config() -> None:
     assert "browser_worker_url" in config.json()
 
 
+
 def test_data_profiles_and_baseline() -> None:
     profiles = client.get("/api/data/profiles")
     assert profiles.status_code == 200
@@ -42,4 +43,3 @@ def test_run_detail_endpoints_before_execution() -> None:
     assert client.get(f"/api/runs/{run_id}/hypotheses").json() == []
     assert client.get(f"/api/runs/{run_id}/llm-calls").json() == []
     assert client.get(f"/api/runs/{run_id}/report").status_code == 404
-

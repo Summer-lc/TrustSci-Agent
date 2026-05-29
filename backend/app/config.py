@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     dashscope_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     qwen_model: str = "qwen-plus"
     qwen_temperature: float = 0.2
+    qwen_timeout_seconds: float = 60
+    qwen_max_retries: int = Field(default=1, ge=0, le=5)
 
     openalex_email: str = ""
     max_papers: int = Field(default=6, ge=1, le=20)

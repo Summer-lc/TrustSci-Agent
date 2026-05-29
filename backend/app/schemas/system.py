@@ -17,3 +17,12 @@ class PublicConfigResponse(BaseModel):
     materials_project_configured: bool
     cors_origins: list[str]
 
+
+class QwenPingResponse(BaseModel):
+    configured: bool
+    status: str
+    model: str
+    message: str
+    response_preview: str | None = None
+    token_usage: dict = {}
+    error: str | None = None

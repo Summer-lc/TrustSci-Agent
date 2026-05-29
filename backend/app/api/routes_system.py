@@ -1,7 +1,8 @@
 from fastapi import APIRouter
 
 from app.config import get_settings
-from app.schemas.system import HealthResponse, PublicConfigResponse
+from app.schemas.system import HealthResponse, PublicConfigResponse, QwenPingResponse
+from app.tools.qwen_client import QwenClient
 
 router = APIRouter(prefix="/api/system", tags=["system"])
 
@@ -26,3 +27,7 @@ async def public_config() -> PublicConfigResponse:
         cors_origins=settings.cors_origin_list,
     )
 
+
+@router.post("/qwen/ping", response_model=QwenPingResponse)
+async def qwen_ping() -> QwenPingResponse:
+    return QwenPingResponse.model_validate(await QwenClient(get_settings()).ping())
