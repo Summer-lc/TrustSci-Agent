@@ -157,8 +157,13 @@ def _write_markdown_report(run: ResearchRun, data_dir: Path) -> None:
     result_card = report.baseline_result_card.model_dump_json(indent=2) if report.baseline_result_card else "None"
     path.write_text(
         f"# {report.paper_title}\n\n"
+        f"## Paper Abstract\n{report.paper_abstract}\n\n"
         f"## Problem Statement\n{report.problem_statement}\n\n"
         f"## Rationale\n{report.rationale}\n\n"
+        f"## Technical Details\n{_markdown_list(report.technical_details)}\n\n"
+        f"## Datasets\n{_markdown_list(report.datasets)}\n\n"
+        f"## Source\n{report.source}\n\n"
+        f"## Target\n{report.target}\n\n"
         f"## Methods\n{methods}\n\n"
         f"## Data Profiles\n{data_profiles}\n\n"
         f"## Experiments\n{report.experiments.model_dump_json(indent=2)}\n\n"
@@ -168,3 +173,7 @@ def _write_markdown_report(run: ResearchRun, data_dir: Path) -> None:
         f"## Citation Audit Log\n{audit}\n",
         encoding="utf-8",
     )
+
+
+def _markdown_list(items: list[str]) -> str:
+    return "\n".join(f"- {item}" for item in items) if items else "- None"
