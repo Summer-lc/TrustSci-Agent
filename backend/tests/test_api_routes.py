@@ -15,6 +15,7 @@ def test_system_health_and_config() -> None:
     assert config.status_code == 200
     assert "qwen_model" in config.json()
     assert "browser_worker_url" in config.json()
+    assert "semantic_scholar_configured" in config.json()
 
 
 
@@ -32,10 +33,11 @@ def test_run_detail_endpoints_before_execution() -> None:
     payload = {
         "domain": "energy_materials",
         "question": "Generate a test hypothesis.",
-        "constraints": {"max_papers": 1},
+        "constraints": {"max_papers": 1, "enable_semantic_scholar": True},
     }
     created = client.post("/api/runs", json=payload)
     assert created.status_code == 200
+    assert created.json()["constraints"]["enable_semantic_scholar"] is True
     run_id = created.json()["run_id"]
 
     assert client.get(f"/api/runs/{run_id}/papers").json() == []

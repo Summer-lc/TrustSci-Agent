@@ -21,6 +21,7 @@ class Settings(BaseSettings):
 
     openalex_email: str = ""
     crossref_email: str = ""
+    semantic_scholar_api_key: str = ""
     max_papers: int = Field(default=6, ge=1, le=20)
     materials_project_api_key: str = ""
     browser_worker_url: str = "http://browser-worker:8010"

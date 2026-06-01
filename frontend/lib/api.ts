@@ -8,6 +8,7 @@ export type PublicConfig = {
   data_dir: string;
   browser_worker_url: string;
   materials_project_configured: boolean;
+  semantic_scholar_configured: boolean;
   cors_origins: string[];
 };
 
@@ -52,6 +53,13 @@ export type ResearchRun = {
   run_id: string;
   domain: string;
   question: string;
+  constraints: {
+    must_verify_citations: boolean;
+    max_papers: number;
+    require_experiment_plan: boolean;
+    enable_browser_worker: boolean;
+    enable_semantic_scholar: boolean;
+  };
   status: string;
   current_stage: string;
   progress: number;
@@ -62,6 +70,8 @@ export type ResearchRun = {
     title: string;
     year?: number;
     doi?: string;
+    source_api?: string;
+    semantic_scholar_id?: string;
     verification_status: string;
     title_match_score?: number;
   }>;
@@ -129,7 +139,12 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function createRun(question: string, domain: string, maxPapers: number) {
+export async function createRun(
+  question: string,
+  domain: string,
+  maxPapers: number,
+  enableSemanticScholar: boolean
+) {
   return requestJson<ResearchRun>(`${API_BASE}/api/runs`, {
     method: "POST",
     body: JSON.stringify({
@@ -139,7 +154,8 @@ export async function createRun(question: string, domain: string, maxPapers: num
         must_verify_citations: true,
         max_papers: maxPapers,
         require_experiment_plan: true,
-        enable_browser_worker: false
+        enable_browser_worker: false,
+        enable_semantic_scholar: enableSemanticScholar
       }
     })
   });

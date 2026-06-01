@@ -4,11 +4,14 @@ export function ResearchConsole({
   question,
   domain,
   maxPapers,
+  enableSemanticScholar,
+  semanticScholarConfigured,
   busy,
   error,
   onQuestionChange,
   onDomainChange,
   onMaxPapersChange,
+  onEnableSemanticScholarChange,
   onStart,
   onRefresh,
   canRefresh
@@ -16,12 +19,15 @@ export function ResearchConsole({
   question: string;
   domain: string;
   maxPapers: number;
+  enableSemanticScholar: boolean;
+  semanticScholarConfigured: boolean;
   busy: boolean;
   error: string;
   canRefresh: boolean;
   onQuestionChange: (value: string) => void;
   onDomainChange: (value: string) => void;
   onMaxPapersChange: (value: number) => void;
+  onEnableSemanticScholarChange: (value: boolean) => void;
   onStart: () => void;
   onRefresh: () => void;
 }) {
@@ -51,6 +57,17 @@ export function ResearchConsole({
           onChange={(event) => onMaxPapersChange(Number(event.target.value))}
         />
       </div>
+      <label className="toggle-row">
+        <input
+          type="checkbox"
+          checked={enableSemanticScholar}
+          onChange={(event) => onEnableSemanticScholarChange(event.target.checked)}
+        />
+        <span>
+          <strong>Semantic Scholar</strong>
+          <small>{semanticScholarConfigured ? "使用 API Key" : "可选补充检索源"}</small>
+        </span>
+      </label>
       <button className="primary" onClick={onStart} disabled={busy}>
         {busy ? <RefreshCw size={17} /> : <Play size={17} />}
         启动工作流
@@ -65,4 +82,3 @@ export function ResearchConsole({
     </div>
   );
 }
-

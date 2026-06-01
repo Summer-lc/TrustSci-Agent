@@ -9,7 +9,9 @@ export function CitationVerifier({ run }: { run: ResearchRun | null }) {
         {(run?.papers || []).map((paper) => (
           <article className="item" key={paper.paper_id}>
             <div className="item-title">{paper.title}</div>
-            <div className="item-meta">{paper.year || "n.d."} · DOI {paper.doi || "N/A"}</div>
+            <div className="item-meta">
+              {paper.year || "n.d."} · {paper.source_api || "source"} · DOI {paper.doi || "N/A"}
+            </div>
             <span className={`badge ${paper.verification_status === "verified" ? "good" : "warn"}`}>
               {paper.verification_status}
             </span>
@@ -20,4 +22,3 @@ export function CitationVerifier({ run }: { run: ResearchRun | null }) {
     </section>
   );
 }
-

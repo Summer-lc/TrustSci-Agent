@@ -15,6 +15,7 @@ class PublicConfigResponse(BaseModel):
     data_dir: str
     browser_worker_url: str
     materials_project_configured: bool
+    semantic_scholar_configured: bool
     cors_origins: list[str]
 
 

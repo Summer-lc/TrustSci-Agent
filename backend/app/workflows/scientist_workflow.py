@@ -12,10 +12,12 @@ from app.evidence.ledger import evidence_from_papers
 from app.llm.registry import build_llm_client
 from app.schemas.common import AgentStep, RunStatus, utc_now
 from app.schemas.hypothesis import Hypothesis
+from app.schemas.paper import Paper
 from app.schemas.run import ResearchRun
 from app.storage.in_memory import run_store
 from app.tools.crossref_client import CrossrefClient
 from app.tools.openalex_client import OpenAlexClient
+from app.tools.semantic_scholar_client import SemanticScholarClient
 
 
 class ScientistWorkflow:
@@ -24,6 +26,7 @@ class ScientistWorkflow:
         self.llm = build_llm_client(settings)
         self.openalex = OpenAlexClient(settings)
         self.crossref = CrossrefClient(settings)
+        self.semantic_scholar = SemanticScholarClient(settings)
         self.planner = PlannerAgent(self.llm)
         self.gap_finder = GapFinderAgent()
         self.hypothesis_agent = HypothesisAgent()
@@ -78,17 +81,39 @@ class ScientistWorkflow:
         seen: set[str] = set()
         papers = []
         for query in queries[:2]:
-            for paper in await self.openalex.search(query, run.constraints.max_papers):
-                key = paper.doi or paper.title.lower()
-                if key not in seen:
-                    seen.add(key)
-                    papers.append(paper)
-                if len(papers) >= run.constraints.max_papers:
-                    break
+            remaining = run.constraints.max_papers - len(papers)
+            if remaining <= 0:
+                break
+            openalex_limit = max(1, remaining // 2) if run.constraints.enable_semantic_scholar else remaining
+            self._collect_papers(
+                seen,
+                papers,
+                await self.openalex.search(query, openalex_limit),
+                run.constraints.max_papers,
+            )
+            remaining = run.constraints.max_papers - len(papers)
+            if run.constraints.enable_semantic_scholar and remaining > 0:
+                self._collect_papers(
+                    seen,
+                    papers,
+                    await self.semantic_scholar.search(query, remaining),
+                    run.constraints.max_papers,
+                )
             if len(papers) >= run.constraints.max_papers:
                 break
         run.papers = papers
-        run.steps[-1].summary = f"Collected {len(papers)} candidate papers from OpenAlex."
+        sources = sorted({paper.source_api for paper in papers})
+        run.steps[-1].summary = f"Collected {len(papers)} candidate papers from {', '.join(sources) or 'literature APIs'}."
+
+    @staticmethod
+    def _collect_papers(seen: set[str], papers: list[Paper], candidates: list[Paper], max_papers: int) -> None:
+        for paper in candidates:
+            key = paper.doi.lower() if paper.doi else paper.title.lower()
+            if key not in seen:
+                seen.add(key)
+                papers.append(paper)
+            if len(papers) >= max_papers:
+                break
 
     async def _verify_citations(self, run: ResearchRun) -> None:
         run.papers = [await self.crossref.verify(paper) for paper in run.papers]

@@ -9,12 +9,14 @@ class Paper(BaseModel):
     publication_date: str | None = None
     doi: str | None = None
     openalex_id: str | None = None
+    semantic_scholar_id: str | None = None
     source_url: str | None = None
     pdf_url: str | None = None
     abstract: str = ""
     venue: str | None = None
     work_type: str | None = None
     cited_by_count: int | None = None
+    fields_of_study: list[str] = Field(default_factory=list)
     is_open_access: bool | None = None
     is_retracted: bool = False
     source_api: str = "unknown"

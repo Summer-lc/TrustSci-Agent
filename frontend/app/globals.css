@@ -123,6 +123,37 @@ a {
   gap: 6px;
 }
 
+.toggle-row {
+  min-height: 46px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 10px;
+}
+
+.toggle-row input {
+  width: 16px;
+  height: 16px;
+}
+
+.toggle-row span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.toggle-row strong {
+  font-size: 13px;
+}
+
+.toggle-row small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .label {
   color: var(--muted);
   font-size: 13px;

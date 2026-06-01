@@ -24,6 +24,7 @@ async def public_config() -> PublicConfigResponse:
         data_dir=str(settings.data_dir),
         browser_worker_url=settings.browser_worker_url,
         materials_project_configured=bool(settings.materials_project_api_key),
+        semantic_scholar_configured=bool(settings.semantic_scholar_api_key),
         cors_origins=settings.cors_origin_list,
     )
 

@@ -13,7 +13,8 @@ export function StatusStrip({ config, run }: { config: PublicConfig | null; run:
       </div>
       <div className="status-cell">
         <Database size={16} />
-        <span>{config?.materials_project_configured ? "Materials Project" : "local data"}</span>
+        <span>{config?.semantic_scholar_configured ? "S2 + OpenAlex" : "OpenAlex"}</span>
+        <span className="badge">{config?.materials_project_configured ? "MP" : "local data"}</span>
       </div>
       <div className="status-cell">
         <Activity size={16} />
@@ -22,4 +23,3 @@ export function StatusStrip({ config, run }: { config: PublicConfig | null; run:
     </div>
   );
 }
-

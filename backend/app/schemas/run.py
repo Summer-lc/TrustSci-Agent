@@ -17,6 +17,7 @@ class ResearchConstraints(BaseModel):
     max_papers: int = 6
     require_experiment_plan: bool = True
     enable_browser_worker: bool = False
+    enable_semantic_scholar: bool = False
 
 
 class ResearchRunCreate(BaseModel):
