@@ -23,7 +23,7 @@ class ScientistWorkflow:
         self.settings = settings
         self.llm = build_llm_client(settings)
         self.openalex = OpenAlexClient(settings)
-        self.crossref = CrossrefClient()
+        self.crossref = CrossrefClient(settings)
         self.planner = PlannerAgent(self.llm)
         self.gap_finder = GapFinderAgent()
         self.hypothesis_agent = HypothesisAgent()
