@@ -16,6 +16,7 @@ def test_system_health_and_config() -> None:
     assert "qwen_model" in config.json()
     assert "browser_worker_url" in config.json()
     assert "semantic_scholar_configured" in config.json()
+    assert config.json()["arxiv_available"] is True
 
 
 

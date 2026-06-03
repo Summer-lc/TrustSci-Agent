@@ -13,9 +13,12 @@ class EvidenceItem(BaseModel):
     quote_or_summary: str
     confidence: float = 0.7
     verified: bool = False
+    verification_method: str | None = None
+    verification_confidence: float | None = None
+    matched_source: str | None = None
+    eligible_for_report: bool = False
     tags: list[str] = Field(default_factory=list)
 
 
 class EvidenceLedger(BaseModel):
     items: list[EvidenceItem] = Field(default_factory=list)
-

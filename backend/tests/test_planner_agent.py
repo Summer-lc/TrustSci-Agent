@@ -34,7 +34,7 @@ async def test_planner_agent_returns_structured_plan() -> None:
             "sub_questions": ["Which mechanisms matter?"],
             "search_queries": ["solid electrolyte ionic conductivity mechanism"],
             "workflow_plan": ["retrieve papers", "verify citations"],
-            "tools_to_call": ["openalex_search", "crossref_verify"],
+            "tools_to_call": ["literature_router", "layered_citation_verifier"],
         }
     )
     agent = PlannerAgent(llm)
@@ -48,7 +48,7 @@ async def test_planner_agent_returns_structured_plan() -> None:
 
     assert plan["research_objective"] == "Explain solid electrolyte conductivity."
     assert plan["search_queries"] == ["solid electrolyte ionic conductivity mechanism"]
-    assert "crossref_verify" in plan["tools_to_call"]
+    assert "layered_citation_verifier" in plan["tools_to_call"]
     assert "evidence_requirements" in plan
     assert "enable_browser_worker: True" in llm.requests[0].user
 

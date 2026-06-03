@@ -16,6 +16,7 @@ class PublicConfigResponse(BaseModel):
     browser_worker_url: str
     materials_project_configured: bool
     semantic_scholar_configured: bool
+    arxiv_available: bool = True
     cors_origins: list[str]
 
 

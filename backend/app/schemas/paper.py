@@ -10,6 +10,7 @@ class Paper(BaseModel):
     doi: str | None = None
     openalex_id: str | None = None
     semantic_scholar_id: str | None = None
+    arxiv_id: str | None = None
     source_url: str | None = None
     pdf_url: str | None = None
     abstract: str = ""
@@ -23,3 +24,7 @@ class Paper(BaseModel):
     verified_by: list[str] = Field(default_factory=list)
     verification_status: str = "unverified"
     title_match_score: float | None = None
+    verification_method: str | None = None
+    verification_confidence: float | None = None
+    matched_source: str | None = None
+    report_eligible: bool = False

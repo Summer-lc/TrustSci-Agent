@@ -9,6 +9,7 @@ export type PublicConfig = {
   browser_worker_url: string;
   materials_project_configured: boolean;
   semantic_scholar_configured: boolean;
+  arxiv_available: boolean;
   cors_origins: string[];
 };
 
@@ -72,8 +73,13 @@ export type ResearchRun = {
     doi?: string;
     source_api?: string;
     semantic_scholar_id?: string;
+    arxiv_id?: string;
     verification_status: string;
     title_match_score?: number;
+    verification_method?: string;
+    verification_confidence?: number;
+    matched_source?: string;
+    report_eligible: boolean;
   }>;
   evidence: Array<{
     evidence_id: string;
@@ -81,7 +87,19 @@ export type ResearchRun = {
     source_title: string;
     verified: boolean;
     quote_or_summary: string;
+    verification_method?: string;
+    verification_confidence?: number;
+    matched_source?: string;
+    eligible_for_report: boolean;
   }>;
+  citation_report?: {
+    total: number;
+    verified: number;
+    suspicious: number;
+    hallucinated: number;
+    skipped: number;
+    integrity_score: number;
+  };
   data_profiles: DatasetProfile[];
   baseline_result_card?: BaselineResultCard;
   hypotheses: Array<{

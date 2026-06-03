@@ -4,6 +4,7 @@ from uuid import uuid4
 from pydantic import BaseModel, Field
 
 from app.schemas.common import AgentStep, RunStatus, utc_now
+from app.schemas.citation import CitationVerificationReport
 from app.schemas.data import BaselineResultCard, DatasetProfile
 from app.schemas.evidence import EvidenceItem
 from app.schemas.experiment import ExperimentPlan
@@ -39,6 +40,7 @@ class ResearchRun(BaseModel):
     plan: dict[str, Any] = Field(default_factory=dict)
     steps: list[AgentStep] = Field(default_factory=list)
     papers: list[Paper] = Field(default_factory=list)
+    citation_report: CitationVerificationReport | None = None
     evidence: list[EvidenceItem] = Field(default_factory=list)
     data_profiles: list[DatasetProfile] = Field(default_factory=list)
     baseline_result_card: BaselineResultCard | None = None

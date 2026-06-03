@@ -14,7 +14,7 @@ Required JSON keys:
 - sub_questions: 3-5 research sub-questions
 - search_queries: 4-8 precise literature/database search queries
 - databases: planned evidence/data sources
-- tools_to_call: tool names selected from openalex_search, crossref_verify, pdf_parser, browser_capture, materials_project_profile, matbench_profile, evidence_ledger, hypothesis_generator, critic_debate, experiment_designer, report_writer
+- tools_to_call: tool names selected from literature_router, openalex_search, semantic_scholar_search, arxiv_search, layered_citation_verifier, pdf_parser, browser_capture, materials_project_profile, matbench_profile, evidence_ledger, hypothesis_generator, critic_debate, experiment_designer, report_writer
 - evidence_requirements: facts that must be supported by verified sources
 - workflow_plan: ordered agent workflow steps
 - success_criteria: measurable criteria for a good run
@@ -79,15 +79,20 @@ def _fallback_plan(run: ResearchRun) -> PlannerPlan:
         ],
         databases=[
             "OpenAlex",
+            "Semantic Scholar (optional)",
+            "arXiv",
             "Crossref",
+            "DataCite",
             "Materials Project",
             "Matbench",
             "local PDF evidence ledger",
         ],
         tools_to_call=[
+            "literature_router",
             "openalex_search",
+            "arxiv_search",
             *browser_tool,
-            "crossref_verify",
+            "layered_citation_verifier",
             "pdf_parser",
             "materials_project_profile",
             "matbench_profile",
@@ -105,8 +110,8 @@ def _fallback_plan(run: ResearchRun) -> PlannerPlan:
         ],
         workflow_plan=[
             "planner: decompose the research question into sub-questions and source plans",
-            "literature_search: retrieve candidate papers from scholarly APIs and browser captures",
-            "citation_verification: verify DOI/title/year metadata before using citations",
+            "literature_search: retrieve candidate papers from OpenAlex, optional Semantic Scholar, arXiv, and browser captures",
+            "citation_verification: verify arXiv ID, DOI/title/year, DataCite, and title-search metadata before using citations",
             "evidence_ledger: extract mechanism, dataset, limitation, and method facts",
             "scientific_data_profile: profile Materials Project and Matbench-compatible data",
             "hypothesis_debate: generate, critique, and revise candidate hypotheses",

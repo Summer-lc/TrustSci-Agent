@@ -17,8 +17,14 @@ def evidence_from_papers(papers: list[Paper], domain: str) -> list[EvidenceItem]
                 source_url=paper.source_url,
                 doi=paper.doi,
                 quote_or_summary=summary,
-                confidence=0.82 if paper.verification_status == "verified" else 0.62,
+                confidence=paper.verification_confidence
+                if paper.verification_confidence is not None
+                else (0.82 if paper.verification_status == "verified" else 0.62),
                 verified=paper.verification_status == "verified",
+                verification_method=paper.verification_method,
+                verification_confidence=paper.verification_confidence,
+                matched_source=paper.matched_source,
+                eligible_for_report=paper.report_eligible,
                 tags=[domain, "literature"],
             )
         )
@@ -34,4 +40,3 @@ def _claim_from_paper(paper: Paper, domain: str) -> str:
     if domain == "energy_materials":
         return "Energy materials research contains reusable evidence for structure-property-performance hypotheses."
     return "The paper provides domain evidence that can support a verifiable research hypothesis."
-

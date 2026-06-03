@@ -11,8 +11,12 @@ export function EvidenceBoard({ run }: { run: ResearchRun | null }) {
             <div className="item-title">{item.claim}</div>
             <div className="item-meta">{item.source_title}</div>
             <p className="muted">{item.quote_or_summary}</p>
+            <div className="item-meta">
+              {item.verification_method || "pending"} · confidence {item.verification_confidence ?? "n/a"}
+              {item.matched_source ? ` · ${item.matched_source}` : ""}
+            </div>
             <span className={`badge ${item.verified ? "good" : "warn"}`}>
-              {item.verified ? "verified" : "needs audit"}
+              {item.eligible_for_report ? "report-ready" : item.verified ? "verified" : "needs audit"}
             </span>
           </article>
         ))}
@@ -21,4 +25,3 @@ export function EvidenceBoard({ run }: { run: ResearchRun | null }) {
     </section>
   );
 }
-

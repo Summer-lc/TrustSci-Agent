@@ -25,8 +25,10 @@ class ReportWriterAgent:
         data_profiles: list[DatasetProfile],
         baseline_result_card: BaselineResultCard | None,
     ) -> ResearchReport:
-        verified_papers = [paper for paper in papers if paper.verification_status == "verified"]
-        verified_evidence = [item for item in evidence if item.verified]
+        verified_papers = [
+            paper for paper in papers if paper.verification_status == "verified" and paper.report_eligible
+        ]
+        verified_evidence = [item for item in evidence if item.verified and item.eligible_for_report]
         evidence_count = len(verified_evidence)
         statement = hypothesis.revised_statement or hypothesis.statement if hypothesis else run.question
         title = _paper_title(run, hypothesis)
@@ -93,8 +95,9 @@ def _technical_details() -> list[str]:
     return [
         "Qwen/Bailian-compatible LLM client behind a provider-neutral LLM interface.",
         "Planner output with sub-questions, search queries, tools, evidence requirements, and risk controls.",
-        "OpenAlex literature search and Crossref DOI/title verification before references are allowed.",
-        "Evidence ledger with verified flags and citation freezing before final report writing.",
+        "Unified literature router over OpenAlex, Semantic Scholar, and arXiv with DOI/arXiv/title deduplication.",
+        "Layered citation verification across arXiv ID, Crossref DOI, DataCite DOI, OpenAlex title, Semantic Scholar title, and arXiv title search before references are allowed.",
+        "Evidence ledger with verification method, confidence, matched source, report eligibility, and citation freezing before final report writing.",
         "Scientific data profiling for Materials Project and Matbench-compatible result cards.",
         "Deterministic Report Writer mock that assembles structured outputs without inventing citations.",
     ]
@@ -118,13 +121,13 @@ def _methods(
     )
     return [
         "Plan the research question into search, extraction, verification, hypothesis, and experiment subtasks.",
-        "Retrieve candidate papers and verify DOI/title/year metadata before they can appear in References.",
+        "Retrieve candidate papers from the literature router and verify arXiv ID, DOI, title, and source metadata before they can appear in References.",
         f"Convert {len(verified_evidence)} verified evidence items into hypothesis support and gap analysis.",
         f"Profile {len(data_profiles)} scientific datasets for availability, target variable, and task type.",
         "Run critic review and select or revise the hypothesis before experiment design.",
         result_card_step,
         browser_step,
-        "Export the contest-format report with a citation audit log covering accepted, suspicious, and rejected papers.",
+        "Export the contest-format report with a citation audit log covering accepted, suspicious, hallucinated, skipped, and audit-only papers.",
     ]
 
 

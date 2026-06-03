@@ -1,6 +1,8 @@
 import pytest
 
 from app.config import Settings
+from app.schemas.citation import CitationVerificationReport, CitationVerificationResult
+from app.schemas.paper import Paper
 from app.schemas.run import ResearchConstraints, ResearchRun
 from app.workflows.scientist_workflow import ScientistWorkflow
 
@@ -10,9 +12,7 @@ async def test_workflow_completes_with_mocked_literature(monkeypatch) -> None:
     settings = Settings(dashscope_api_key="", max_papers=2)
     workflow = ScientistWorkflow(settings)
 
-    async def fake_search(query: str, limit: int):
-        from app.schemas.paper import Paper
-
+    async def fake_search(queries, *, max_papers: int, enable_semantic_scholar: bool = False, enable_arxiv: bool = True):
         return [
             Paper(
                 paper_id="paper_001",
@@ -24,14 +24,33 @@ async def test_workflow_completes_with_mocked_literature(monkeypatch) -> None:
             )
         ]
 
-    async def fake_verify(paper):
-        paper.verification_status = "verified"
-        paper.verified_by.append("crossref")
-        paper.title_match_score = 0.95
-        return paper
+    async def fake_verify_many(papers, *, enable_semantic_scholar: bool = False):
+        for paper in papers:
+            paper.verification_status = "verified"
+            paper.verified_by.append("crossref")
+            paper.title_match_score = 0.95
+            paper.verification_method = "crossref_doi"
+            paper.verification_confidence = 0.95
+            paper.report_eligible = True
+        return papers, CitationVerificationReport(
+            total=len(papers),
+            verified=len(papers),
+            integrity_score=1,
+            results=[
+                CitationVerificationResult(
+                    paper_id=paper.paper_id,
+                    title=paper.title,
+                    status="verified",
+                    confidence=0.95,
+                    method="crossref_doi",
+                    doi=paper.doi,
+                )
+                for paper in papers
+            ],
+        )
 
-    monkeypatch.setattr(workflow.openalex, "search", fake_search)
-    monkeypatch.setattr(workflow.crossref, "verify", fake_verify)
+    monkeypatch.setattr(workflow.literature_router, "search", fake_search)
+    monkeypatch.setattr(workflow.citation_verifier, "verify_many", fake_verify_many)
 
     run = ResearchRun(
         domain="energy_materials",
@@ -52,9 +71,9 @@ async def test_workflow_uses_semantic_scholar_when_enabled(monkeypatch) -> None:
     settings = Settings(dashscope_api_key="", max_papers=2)
     workflow = ScientistWorkflow(settings)
 
-    async def fake_openalex_search(query: str, limit: int):
-        from app.schemas.paper import Paper
-
+    async def fake_router_search(queries, *, max_papers: int, enable_semantic_scholar: bool = False, enable_arxiv: bool = True):
+        assert enable_semantic_scholar is True
+        assert enable_arxiv is True
         return [
             Paper(
                 paper_id="openalex_001",
@@ -63,13 +82,7 @@ async def test_workflow_uses_semantic_scholar_when_enabled(monkeypatch) -> None:
                 verification_status="candidate",
                 verified_by=["openalex"],
                 source_api="openalex",
-            )
-        ][:limit]
-
-    async def fake_semantic_search(query: str, limit: int):
-        from app.schemas.paper import Paper
-
-        return [
+            ),
             Paper(
                 paper_id="S2:semantic_001",
                 title="Semantic Scholar candidate",
@@ -77,19 +90,27 @@ async def test_workflow_uses_semantic_scholar_when_enabled(monkeypatch) -> None:
                 verification_status="candidate",
                 verified_by=["semantic_scholar"],
                 source_api="semantic_scholar",
-            )
-        ][:limit]
+            ),
+            Paper(
+                paper_id="arxiv:2401.00001",
+                title="arXiv candidate",
+                arxiv_id="2401.00001",
+                verification_status="candidate",
+                verified_by=["arxiv"],
+                source_api="arxiv",
+            ),
+        ][:max_papers]
 
-    async def fake_verify(paper):
-        paper.verification_status = "verified"
-        if "crossref" not in paper.verified_by:
-            paper.verified_by.append("crossref")
-        paper.title_match_score = 0.95
-        return paper
+    async def fake_verify_many(papers, *, enable_semantic_scholar: bool = False):
+        for paper in papers:
+            paper.verification_status = "verified"
+            paper.verification_method = "openalex_title"
+            paper.verification_confidence = 0.95
+            paper.report_eligible = True
+        return papers, CitationVerificationReport(total=len(papers), verified=len(papers), integrity_score=1)
 
-    monkeypatch.setattr(workflow.openalex, "search", fake_openalex_search)
-    monkeypatch.setattr(workflow.semantic_scholar, "search", fake_semantic_search)
-    monkeypatch.setattr(workflow.crossref, "verify", fake_verify)
+    monkeypatch.setattr(workflow.literature_router, "search", fake_router_search)
+    monkeypatch.setattr(workflow.citation_verifier, "verify_many", fake_verify_many)
 
     run = ResearchRun(
         domain="energy_materials",

@@ -13,7 +13,7 @@ export function StatusStrip({ config, run }: { config: PublicConfig | null; run:
       </div>
       <div className="status-cell">
         <Database size={16} />
-        <span>{config?.semantic_scholar_configured ? "S2 + OpenAlex" : "OpenAlex"}</span>
+        <span>{config?.semantic_scholar_configured ? "OpenAlex + S2 + arXiv" : "OpenAlex + arXiv"}</span>
         <span className="badge">{config?.materials_project_configured ? "MP" : "local data"}</span>
       </div>
       <div className="status-cell">

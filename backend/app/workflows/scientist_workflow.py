@@ -12,10 +12,12 @@ from app.evidence.ledger import evidence_from_papers
 from app.llm.registry import build_llm_client
 from app.schemas.common import AgentStep, RunStatus, utc_now
 from app.schemas.hypothesis import Hypothesis
-from app.schemas.paper import Paper
 from app.schemas.run import ResearchRun
 from app.storage.in_memory import run_store
+from app.tools.arxiv_client import ArxivClient
+from app.tools.citation_verifier import CitationVerifier
 from app.tools.crossref_client import CrossrefClient
+from app.tools.literature_router import LiteratureRouter
 from app.tools.openalex_client import OpenAlexClient
 from app.tools.semantic_scholar_client import SemanticScholarClient
 
@@ -27,6 +29,20 @@ class ScientistWorkflow:
         self.openalex = OpenAlexClient(settings)
         self.crossref = CrossrefClient(settings)
         self.semantic_scholar = SemanticScholarClient(settings)
+        self.arxiv = ArxivClient()
+        self.literature_router = LiteratureRouter(
+            settings,
+            openalex=self.openalex,
+            semantic_scholar=self.semantic_scholar,
+            arxiv=self.arxiv,
+        )
+        self.citation_verifier = CitationVerifier(
+            settings,
+            crossref=self.crossref,
+            openalex=self.openalex,
+            semantic_scholar=self.semantic_scholar,
+            arxiv=self.arxiv,
+        )
         self.planner = PlannerAgent(self.llm)
         self.gap_finder = GapFinderAgent()
         self.hypothesis_agent = HypothesisAgent()
@@ -78,47 +94,30 @@ class ScientistWorkflow:
 
     async def _search_literature(self, run: ResearchRun) -> None:
         queries = run.plan.get("search_queries") or [run.question]
-        seen: set[str] = set()
-        papers = []
-        for query in queries[:2]:
-            remaining = run.constraints.max_papers - len(papers)
-            if remaining <= 0:
-                break
-            openalex_limit = max(1, remaining // 2) if run.constraints.enable_semantic_scholar else remaining
-            self._collect_papers(
-                seen,
-                papers,
-                await self.openalex.search(query, openalex_limit),
-                run.constraints.max_papers,
-            )
-            remaining = run.constraints.max_papers - len(papers)
-            if run.constraints.enable_semantic_scholar and remaining > 0:
-                self._collect_papers(
-                    seen,
-                    papers,
-                    await self.semantic_scholar.search(query, remaining),
-                    run.constraints.max_papers,
-                )
-            if len(papers) >= run.constraints.max_papers:
-                break
-        run.papers = papers
-        sources = sorted({paper.source_api for paper in papers})
-        run.steps[-1].summary = f"Collected {len(papers)} candidate papers from {', '.join(sources) or 'literature APIs'}."
-
-    @staticmethod
-    def _collect_papers(seen: set[str], papers: list[Paper], candidates: list[Paper], max_papers: int) -> None:
-        for paper in candidates:
-            key = paper.doi.lower() if paper.doi else paper.title.lower()
-            if key not in seen:
-                seen.add(key)
-                papers.append(paper)
-            if len(papers) >= max_papers:
-                break
+        run.papers = await self.literature_router.search(
+            [str(query) for query in queries],
+            max_papers=run.constraints.max_papers,
+            enable_semantic_scholar=run.constraints.enable_semantic_scholar,
+            enable_arxiv=True,
+        )
+        sources = sorted({paper.source_api for paper in run.papers})
+        stats = ", ".join(f"{source}:{count}" for source, count in self.literature_router.last_source_stats.items())
+        run.steps[-1].summary = (
+            f"Collected {len(run.papers)} candidate papers from "
+            f"{', '.join(sources) or 'literature APIs'}"
+            f"{f' ({stats})' if stats else ''}."
+        )
 
     async def _verify_citations(self, run: ResearchRun) -> None:
-        run.papers = [await self.crossref.verify(paper) for paper in run.papers]
-        verified = len([paper for paper in run.papers if paper.verification_status == "verified"])
-        run.steps[-1].summary = f"Verified {verified}/{len(run.papers)} papers through Crossref."
+        run.papers, run.citation_report = await self.citation_verifier.verify_many(
+            run.papers,
+            enable_semantic_scholar=run.constraints.enable_semantic_scholar,
+        )
+        report = run.citation_report
+        run.steps[-1].summary = (
+            f"Verified {report.verified}/{report.total} papers across layered checks; "
+            f"integrity_score={report.integrity_score}."
+        )
 
     async def _build_evidence(self, run: ResearchRun) -> None:
         run.evidence = evidence_from_papers(run.papers, run.domain)
@@ -174,6 +173,11 @@ def _write_markdown_report(run: ResearchRun, data_dir: Path) -> None:
         f"- {paper.title} ({paper.year or 'n.d.'}). DOI: {paper.doi or 'N/A'}" for paper in report.references
     )
     audit = "\n".join(f"- {line}" for line in report.citation_audit_log)
+    citation_report = (
+        run.citation_report.model_dump_json(indent=2)
+        if run.citation_report
+        else "No citation verification report generated."
+    )
     methods = "\n".join(f"- {item}" for item in report.methods)
     data_profiles = "\n".join(
         f"- {profile.name}: {profile.rows or 'n/a'} rows, target={profile.target}, availability={profile.availability}"
@@ -195,6 +199,7 @@ def _write_markdown_report(run: ResearchRun, data_dir: Path) -> None:
         f"## Baseline Result Card\n{result_card}\n\n"
         f"## Results\n{report.results}\n\n"
         f"## References\n{references}\n\n"
+        f"## Citation Verification Report\n{citation_report}\n\n"
         f"## Citation Audit Log\n{audit}\n",
         encoding="utf-8",
     )

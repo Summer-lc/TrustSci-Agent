@@ -20,6 +20,7 @@ def test_report_writer_uses_only_verified_references() -> None:
         doi="10.1234/verified",
         verification_status="verified",
         verified_by=["openalex", "crossref"],
+        report_eligible=True,
     )
     rejected = Paper(
         paper_id="p_rejected",
@@ -114,6 +115,7 @@ def _evidence() -> EvidenceItem:
         source_title="Verified solid electrolyte paper",
         quote_or_summary="A verified summary from the evidence ledger.",
         verified=True,
+        eligible_for_report=True,
     )
 
 
