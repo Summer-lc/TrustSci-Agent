@@ -4,6 +4,11 @@ from fastapi.testclient import TestClient
 from pypdf import PdfWriter
 
 from app.main import app
+from app.schemas.evidence import EvidenceItem
+from app.schemas.experiment import ExperimentPlan
+from app.schemas.paper import Paper
+from app.schemas.run import ResearchConstraints, ResearchRun
+from app.storage.in_memory import run_store
 
 
 client = TestClient(app)
@@ -95,3 +100,75 @@ def test_pdf_evidence_ingest_rejects_paths_outside_data_dir() -> None:
     response = client.post(f"/api/runs/{run_id}/pdf-evidence", json={"pdf_path": "/tmp/not_allowed.pdf"})
 
     assert response.status_code == 400
+
+
+def test_evidence_decision_and_freeze_restrict_report_set() -> None:
+    run = ResearchRun(
+        domain="energy_materials",
+        question="Freeze evidence before final report.",
+        constraints=ResearchConstraints(max_papers=2),
+    )
+    run.papers = [
+        Paper(
+            paper_id="p_keep",
+            title="Kept verified paper",
+            verification_status="verified",
+            report_eligible=True,
+        ),
+        Paper(
+            paper_id="p_reject",
+            title="Rejected verified paper",
+            verification_status="verified",
+            report_eligible=True,
+        ),
+    ]
+    run.evidence = [
+        EvidenceItem(
+            evidence_id="ev_keep",
+            paper_id="p_keep",
+            claim="Kept evidence supports the research plan.",
+            source_title="Kept verified paper",
+            quote_or_summary="Traceable support.",
+            verified=True,
+            eligible_for_report=True,
+        ),
+        EvidenceItem(
+            evidence_id="ev_reject",
+            paper_id="p_reject",
+            claim="Rejected evidence should not enter the report.",
+            source_title="Rejected verified paper",
+            quote_or_summary="Rejected support.",
+            verified=True,
+            eligible_for_report=True,
+        ),
+    ]
+    run.experiment_plan = ExperimentPlan(
+        datasets=["fixture"],
+        source="local",
+        target="target",
+        baselines=["mean"],
+        metrics=["MAE"],
+        experiment_steps=["freeze evidence", "write report"],
+        expected_results="bounded",
+        failure_modes=["weak evidence"],
+    )
+    run_store.create(run)
+
+    rejected = client.post(
+        f"/api/runs/{run.run_id}/evidence/ev_reject/decision",
+        json={"decision": "rejected", "note": "not enough support"},
+    )
+    assert rejected.status_code == 200
+    rejected_item = next(item for item in rejected.json()["evidence"] if item["evidence_id"] == "ev_reject")
+    assert rejected_item["human_decision"] == "rejected"
+    assert rejected_item["eligible_for_report"] is False
+
+    frozen = client.post(f"/api/runs/{run.run_id}/evidence/freeze")
+
+    assert frozen.status_code == 200
+    body = frozen.json()
+    assert body["evidence_frozen"] is True
+    assert body["frozen_evidence_ids"] == ["ev_keep"]
+    assert body["frozen_paper_ids"] == ["p_keep"]
+    assert [paper["paper_id"] for paper in body["report"]["references"]] == ["p_keep"]
+    assert body["claim_audit"]["total"] > 0

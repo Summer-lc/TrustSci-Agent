@@ -69,8 +69,14 @@ def _research_state(run: ResearchRun) -> dict[str, Any]:
             "verified_papers": len([item for item in run.papers if item.report_eligible]),
             "evidence": len(run.evidence),
             "report_ready_evidence": len([item for item in run.evidence if item.eligible_for_report]),
+            "frozen_evidence": len(run.frozen_evidence_ids),
             "knowledge_cards": len(run.knowledge_cards),
             "hypotheses": len(run.hypotheses),
+        },
+        "human_gate": {
+            "evidence_frozen": run.evidence_frozen,
+            "frozen_evidence_ids": run.frozen_evidence_ids,
+            "frozen_paper_ids": run.frozen_paper_ids,
         },
         "citation_integrity_score": run.citation_report.integrity_score if run.citation_report else None,
         "claim_support_score": run.claim_audit.support_score if run.claim_audit else None,
@@ -98,6 +104,7 @@ def _research_log(run: ResearchRun) -> str:
             "## Evidence Summary",
             f"- Papers: {len(run.papers)}",
             f"- Evidence items: {len(run.evidence)}",
+            f"- Evidence frozen: {run.evidence_frozen} ({len(run.frozen_evidence_ids)} items)",
             f"- Knowledge cards: {len(run.knowledge_cards)}",
             f"- Hypotheses: {len(run.hypotheses)}",
         ]
@@ -114,6 +121,7 @@ def _to_human(run: ResearchRun) -> str:
         "# Human Checkpoints",
         "",
         "- Review suspicious or audit-only citations before final submission.",
+        "- Accept or reject evidence, then freeze the evidence set before final report export.",
         "- Confirm the selected hypothesis is scientifically reasonable.",
         "- Inspect unsupported claims and downgrade them before demo freeze.",
         "- Verify baseline result cards are presented as actual results, not broad scientific conclusions.",
@@ -122,6 +130,10 @@ def _to_human(run: ResearchRun) -> str:
         actions.append(f"- Claim audit found {run.claim_audit.unsupported} unsupported claims.")
     if run.citation_report and run.citation_report.suspicious:
         actions.append(f"- Citation verifier found {run.citation_report.suspicious} suspicious papers.")
+    if not run.evidence_frozen and run.evidence:
+        actions.append("- Evidence set is not frozen yet.")
+    if run.evidence_frozen:
+        actions.append(f"- Frozen evidence set contains {len(run.frozen_evidence_ids)} items.")
     return "\n".join(actions) + "\n"
 
 

@@ -50,6 +50,9 @@ class ResearchRun(BaseModel):
     citation_report: CitationVerificationReport | None = None
     paper_chunks: list[PaperChunk] = Field(default_factory=list)
     evidence: list[EvidenceItem] = Field(default_factory=list)
+    evidence_frozen: bool = False
+    frozen_evidence_ids: list[str] = Field(default_factory=list)
+    frozen_paper_ids: list[str] = Field(default_factory=list)
     knowledge_cards: list[KnowledgeCard] = Field(default_factory=list)
     claim_audit: ClaimAuditReport | None = None
     data_profiles: list[DatasetProfile] = Field(default_factory=list)

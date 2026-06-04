@@ -79,6 +79,67 @@ def test_report_writer_marks_results_pending_without_verified_inputs() -> None:
     assert any("p_unverified: candidate" in line for line in report.citation_audit_log)
 
 
+def test_report_writer_respects_frozen_evidence_set() -> None:
+    run = ResearchRun(
+        domain="energy_materials",
+        question="Use only frozen evidence.",
+        constraints=ResearchConstraints(max_papers=2),
+        evidence_frozen=True,
+        frozen_evidence_ids=["e1"],
+        frozen_paper_ids=["p_verified"],
+    )
+    extra_paper = Paper(
+        paper_id="p_extra",
+        title="Extra verified paper",
+        verification_status="verified",
+        report_eligible=True,
+    )
+    extra_evidence = EvidenceItem(
+        evidence_id="e2",
+        paper_id="p_extra",
+        claim="Extra support should stay out of a frozen report.",
+        source_title="Extra verified paper",
+        quote_or_summary="Extra verified summary.",
+        verified=True,
+        eligible_for_report=True,
+    )
+
+    report = ReportWriterAgent().run(
+        run,
+        _hypothesis(),
+        _experiment(),
+        [_evidence(), extra_evidence],
+        [
+            Paper(
+                paper_id="p_verified",
+                title="Verified solid electrolyte paper",
+                verification_status="verified",
+                report_eligible=True,
+            ),
+            extra_paper,
+        ],
+        [
+            _knowledge_card(),
+            KnowledgeCard(
+                card_id="kc_002",
+                title="Extra verified paper",
+                perspective="domain_mechanism",
+                finding="Extra support.",
+                evidence_ids=["e2"],
+                paper_ids=["p_extra"],
+                confidence=0.9,
+                report_eligible=True,
+            ),
+        ],
+        [_data_profile()],
+        None,
+    )
+
+    assert [paper.paper_id for paper in report.references] == ["p_verified"]
+    assert [card.card_id for card in report.knowledge_cards] == ["kc_001"]
+    assert "1 verified evidence items" in report.problem_statement
+
+
 def _hypothesis() -> Hypothesis:
     return Hypothesis(
         hypothesis_id="h1",

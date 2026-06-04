@@ -198,6 +198,21 @@ a {
   font-weight: 650;
 }
 
+.icon-button {
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #edf7f2;
+  color: var(--green);
+}
+
+.icon-button.danger {
+  background: #fff0f0;
+  color: var(--red);
+}
+
 .link-button {
   padding: 0 12px;
 }
@@ -381,6 +396,14 @@ a {
   margin-top: 5px;
   color: var(--muted);
   font-size: 13px;
+}
+
+.item-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .dense {

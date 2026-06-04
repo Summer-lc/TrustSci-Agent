@@ -8,6 +8,8 @@ import {
   captureBrowserPage,
   createRun,
   DatasetProfile,
+  decideEvidence,
+  freezeEvidence,
   getDataProfiles,
   getPublicConfig,
   getRun,
@@ -16,7 +18,8 @@ import {
   PublicConfig,
   ResearchRun,
   runBaseline,
-  startRun
+  startRun,
+  unfreezeEvidence
 } from "../../lib/api";
 import { BrowserCapturePanel } from "./BrowserCapturePanel";
 import { CitationVerifier } from "./CitationVerifier";
@@ -53,6 +56,7 @@ export function Workbench() {
   const [captureBusy, setCaptureBusy] = useState(false);
   const [captureError, setCaptureError] = useState("");
   const [captureResult, setCaptureResult] = useState<BrowserCaptureResult | null>(null);
+  const [evidenceBusy, setEvidenceBusy] = useState(false);
 
   useEffect(() => {
     void loadInitialData();
@@ -142,6 +146,51 @@ export function Workbench() {
     }
   }
 
+  async function handleEvidenceDecision(evidenceId: string, decision: "pending" | "accepted" | "rejected") {
+    if (!run) return;
+    setEvidenceBusy(true);
+    setError("");
+    try {
+      const next = await decideEvidence(run.run_id, evidenceId, decision);
+      setRun(next);
+      await refreshRuns();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Evidence decision failed");
+    } finally {
+      setEvidenceBusy(false);
+    }
+  }
+
+  async function handleFreezeEvidence() {
+    if (!run) return;
+    setEvidenceBusy(true);
+    setError("");
+    try {
+      const next = await freezeEvidence(run.run_id);
+      setRun(next);
+      await refreshRuns();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Evidence freeze failed");
+    } finally {
+      setEvidenceBusy(false);
+    }
+  }
+
+  async function handleUnfreezeEvidence() {
+    if (!run) return;
+    setEvidenceBusy(true);
+    setError("");
+    try {
+      const next = await unfreezeEvidence(run.run_id);
+      setRun(next);
+      await refreshRuns();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Evidence unfreeze failed");
+    } finally {
+      setEvidenceBusy(false);
+    }
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -185,7 +234,13 @@ export function Workbench() {
           <RunTimeline run={run} />
           <WorkspacePanel run={run} />
           <PerspectivePlanPanel run={run} />
-          <EvidenceBoard run={run} />
+          <EvidenceBoard
+            run={run}
+            busy={evidenceBusy}
+            onDecision={handleEvidenceDecision}
+            onFreeze={handleFreezeEvidence}
+            onUnfreeze={handleUnfreezeEvidence}
+          />
           <KnowledgeCardsPanel run={run} />
           <CitationVerifier run={run} />
           <ScientificDataPanel run={run} profiles={profiles} baseline={baseline} />

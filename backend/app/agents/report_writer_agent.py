@@ -1,4 +1,5 @@
 from app.evidence.audit import build_citation_audit
+from app.evidence.selection import reportable_evidence, reportable_knowledge_cards, reportable_papers
 from app.schemas.data import BaselineResultCard, DatasetProfile
 from app.schemas.evidence import EvidenceItem
 from app.schemas.experiment import ExperimentPlan
@@ -27,10 +28,8 @@ class ReportWriterAgent:
         data_profiles: list[DatasetProfile],
         baseline_result_card: BaselineResultCard | None,
     ) -> ResearchReport:
-        verified_papers = [
-            paper for paper in papers if paper.verification_status == "verified" and paper.report_eligible
-        ]
-        verified_evidence = [item for item in evidence if item.verified and item.eligible_for_report]
+        verified_papers = reportable_papers(run, papers, evidence)
+        verified_evidence = reportable_evidence(run, evidence)
         evidence_count = len(verified_evidence)
         statement = hypothesis.revised_statement or hypothesis.statement if hypothesis else run.question
         title = _paper_title(run, hypothesis)
@@ -50,7 +49,7 @@ class ReportWriterAgent:
             results=_results_text(baseline_result_card, len(verified_papers), evidence_count),
             data_profiles=data_profiles,
             baseline_result_card=baseline_result_card,
-            knowledge_cards=[card for card in knowledge_cards if card.report_eligible],
+            knowledge_cards=reportable_knowledge_cards(run, knowledge_cards),
             references=verified_papers,
             citation_audit_log=build_citation_audit(papers),
         )

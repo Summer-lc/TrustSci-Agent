@@ -67,6 +67,9 @@ export type ResearchRun = {
   progress: number;
   workspace_path?: string;
   workspace_artifacts: Record<string, string>;
+  evidence_frozen: boolean;
+  frozen_evidence_ids: string[];
+  frozen_paper_ids: string[];
   plan: Record<string, unknown>;
   perspectives: Array<{
     perspective: string;
@@ -118,6 +121,9 @@ export type ResearchRun = {
     verification_confidence?: number;
     matched_source?: string;
     eligible_for_report: boolean;
+    human_decision: "pending" | "accepted" | "rejected";
+    human_note: string;
+    frozen: boolean;
   }>;
   knowledge_cards: Array<{
     card_id: string;
@@ -279,6 +285,30 @@ export async function ingestPdfEvidence(runId: string, pdfPath: string) {
     method: "POST",
     body: JSON.stringify({ pdf_path: pdfPath })
   });
+}
+
+export async function decideEvidence(
+  runId: string,
+  evidenceId: string,
+  decision: "pending" | "accepted" | "rejected",
+  note = ""
+) {
+  return requestJson<ResearchRun>(`${API_BASE}/api/runs/${runId}/evidence/${evidenceId}/decision`, {
+    method: "POST",
+    body: JSON.stringify({ decision, note })
+  });
+}
+
+export async function freezeEvidence(runId: string) {
+  return requestJson<ResearchRun>(`${API_BASE}/api/runs/${runId}/evidence/freeze`, { method: "POST" });
+}
+
+export async function unfreezeEvidence(runId: string) {
+  return requestJson<ResearchRun>(`${API_BASE}/api/runs/${runId}/evidence/unfreeze`, { method: "POST" });
+}
+
+export async function rebuildReport(runId: string) {
+  return requestJson<ResearchRun>(`${API_BASE}/api/runs/${runId}/report/rebuild`, { method: "POST" });
 }
 
 export function reportExportUrl(runId: string, format: "md" | "json" = "md") {

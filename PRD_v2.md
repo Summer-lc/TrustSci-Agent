@@ -109,7 +109,9 @@ Citation audit log
   "verification_method": "openalex_title",
   "verification_confidence": 0.91,
   "matched_source": "https://openalex.org/...",
-  "eligible_for_report": true
+  "eligible_for_report": true,
+  "human_decision": "pending | accepted | rejected",
+  "frozen": false
 }
 ```
 
@@ -135,6 +137,7 @@ Citation audit log
 - revision advice
 
 最终报告只能使用 evidence ledger 中 `eligible_for_report=true` 的证据作为强支撑。
+如果用户已冻结 evidence set，Report Writer 与 Claim Verifier 只能使用 `frozen_evidence_ids` 对应的证据，并且 References 只能来自 `frozen_paper_ids`。
 
 ### 4.6 实验计划与结果卡
 
@@ -189,9 +192,11 @@ ResearchConsole
 7. Planner 输出多视角 `perspectives`，覆盖领域专家、ML/数据专家、实验专家、审稿人和应用视角。
 8. LiteratureMiner 输出 knowledge cards，且每张卡绑定 evidence ids。
 9. Report Writer 只把 verified 且 report eligible 的论文放入 References。
-10. Final report 导出 Markdown 和 JSON。
-11. 前端展示 citation status、verification method、integrity score、perspectives 和 knowledge cards。
-12. 测试覆盖 arXiv client、literature router、citation verifier、planner perspectives、knowledge cards、workflow。
+10. Human Gate 支持接受/拒绝 evidence、冻结/解冻 evidence set。
+11. 冻结 evidence set 后，Report Writer 不会引用 frozen set 之外的证据或论文。
+12. Final report 导出 Markdown 和 JSON。
+13. 前端展示 citation status、verification method、integrity score、perspectives、knowledge cards 和 human gate 状态。
+14. 测试覆盖 arXiv client、literature router、citation verifier、planner perspectives、knowledge cards、workflow 和 evidence freeze。
 
 ## 7. 暂不纳入 MVP 的能力
 
@@ -230,7 +235,8 @@ workspace/run_xxx/
 
 - 已落地 v1：`data/workspace/{run_id}` 文件工作区。
 - 已落地 v1：`research-state.json`、`research-log.md`、`run.json`、papers/evidence/hypotheses/experiments/reports/to_human artifacts。
-- 后续增强：服务重启后从 workspace 恢复 run store、workspace bundle 导出、human gate 状态持久化。
+- 已落地 v1：workspace 快照记录 human gate 状态、frozen evidence ids、frozen paper ids。
+- 后续增强：服务重启后从 workspace 恢复 run store、workspace bundle 导出。
 
 ### v2.4 Skill Registry
 
@@ -243,9 +249,10 @@ workspace/run_xxx/
 ### v2.5 Human Gate
 
 - 用户选择候选假设。
-- 用户接受/拒绝引用。
+- 已落地 v1：用户接受/拒绝 evidence。
+- 已落地 v1：用户冻结/解冻 evidence set，报告重建时只使用 frozen evidence。
+- 后续增强：用户接受/拒绝引用。
 - 用户要求补搜特定方向。
-- 用户冻结 evidence set 后再生成报告。
 
 ## 9. 参考项目取舍
 

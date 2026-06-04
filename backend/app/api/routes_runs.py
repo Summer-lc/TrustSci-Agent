@@ -3,12 +3,14 @@ from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import FileResponse
 
+from app.agents.report_writer_agent import ReportWriterAgent
 from app.config import get_settings
-from app.schemas.claim import ClaimAuditReport
-from app.schemas.common import RunStatus
 from app.schemas.data import BaselineResultCard, DatasetProfile
 from app.evidence.ledger import evidence_from_pdf_chunks
-from app.schemas.evidence import EvidenceItem, PaperChunk, PdfEvidenceIngestRequest
+from app.evidence.selection import reportable_evidence
+from app.schemas.claim import ClaimAuditReport
+from app.schemas.common import RunStatus
+from app.schemas.evidence import EvidenceDecisionRequest, EvidenceItem, PaperChunk, PdfEvidenceIngestRequest
 from app.schemas.hypothesis import Hypothesis
 from app.schemas.knowledge import KnowledgeCard
 from app.schemas.paper import Paper
@@ -17,9 +19,10 @@ from app.schemas.report import ResearchReport
 from app.schemas.run import ResearchRun, ResearchRunCreate
 from app.storage.in_memory import run_store
 from app.storage.workspace import RunWorkspace
+from app.tools.claim_verifier import ClaimVerifier
 from app.tools.llm_logger import read_llm_logs
 from app.tools.pdf_parser import parse_pdf_chunks
-from app.workflows.scientist_workflow import ScientistWorkflow
+from app.workflows.scientist_workflow import ScientistWorkflow, _write_markdown_report
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
 
@@ -74,6 +77,53 @@ async def get_papers(run_id: str) -> list[Paper]:
 @router.get("/{run_id}/evidence", response_model=list[EvidenceItem])
 async def get_evidence(run_id: str) -> list[EvidenceItem]:
     return _must_get_run(run_id).evidence
+
+
+@router.post("/{run_id}/evidence/{evidence_id}/decision", response_model=ResearchRun)
+async def decide_evidence(run_id: str, evidence_id: str, payload: EvidenceDecisionRequest) -> ResearchRun:
+    run = _must_get_run(run_id)
+    item = next((entry for entry in run.evidence if entry.evidence_id == evidence_id), None)
+    if item is None:
+        raise HTTPException(status_code=404, detail="evidence not found")
+    item.human_decision = payload.decision
+    item.human_note = payload.note
+    item.eligible_for_report = item.verified and payload.decision != "rejected"
+    if run.evidence_frozen and payload.decision == "rejected":
+        run.frozen_evidence_ids = [item_id for item_id in run.frozen_evidence_ids if item_id != evidence_id]
+        run.frozen_paper_ids = _paper_ids_for_frozen_evidence(run)
+    _sync_frozen_markers(run)
+    _refresh_report_if_possible(run)
+    _write_workspace(run)
+    return run_store.save(run)
+
+
+@router.post("/{run_id}/evidence/freeze", response_model=ResearchRun)
+async def freeze_evidence(run_id: str) -> ResearchRun:
+    run = _must_get_run(run_id)
+    frozen_ids = [
+        item.evidence_id
+        for item in run.evidence
+        if item.verified and item.eligible_for_report and item.human_decision != "rejected"
+    ]
+    run.evidence_frozen = True
+    run.frozen_evidence_ids = frozen_ids
+    run.frozen_paper_ids = _paper_ids_for_frozen_evidence(run)
+    _sync_frozen_markers(run)
+    _refresh_report_if_possible(run)
+    _write_workspace(run)
+    return run_store.save(run)
+
+
+@router.post("/{run_id}/evidence/unfreeze", response_model=ResearchRun)
+async def unfreeze_evidence(run_id: str) -> ResearchRun:
+    run = _must_get_run(run_id)
+    run.evidence_frozen = False
+    run.frozen_evidence_ids = []
+    run.frozen_paper_ids = []
+    _sync_frozen_markers(run)
+    _refresh_report_if_possible(run)
+    _write_workspace(run)
+    return run_store.save(run)
 
 
 @router.get("/{run_id}/perspectives", response_model=list[PerspectiveQuestion])
@@ -196,6 +246,14 @@ async def regenerate_report(run_id: str) -> ResearchRun:
     return await ScientistWorkflow(get_settings()).run(run)
 
 
+@router.post("/{run_id}/report/rebuild", response_model=ResearchRun)
+async def rebuild_report(run_id: str) -> ResearchRun:
+    run = _must_get_run(run_id)
+    _refresh_report_if_possible(run, require_experiment=True)
+    _write_workspace(run)
+    return run_store.save(run)
+
+
 @router.get("/{run_id}/report/export")
 async def export_report(run_id: str, format: str = "md"):
     run = _must_get_run(run_id)
@@ -222,6 +280,47 @@ def _write_workspace(run: ResearchRun) -> None:
     workspace = RunWorkspace(get_settings().data_dir)
     run.workspace_path = str(workspace.ensure(run))
     run.workspace_artifacts = workspace.write_snapshot(run)
+
+
+def _refresh_report_if_possible(run: ResearchRun, *, require_experiment: bool = False) -> None:
+    if run.experiment_plan is None:
+        if require_experiment:
+            raise HTTPException(status_code=400, detail="experiment plan is required before rebuilding report")
+        return
+    run.report = ReportWriterAgent().run(
+        run,
+        _selected_hypothesis(run),
+        run.experiment_plan,
+        run.evidence,
+        run.papers,
+        run.knowledge_cards,
+        run.data_profiles,
+        run.baseline_result_card,
+    )
+    run.claim_audit = ClaimVerifier().audit(run, run.report, reportable_evidence(run), _selected_hypothesis(run))
+    _write_markdown_report(run, get_settings().data_dir)
+
+
+def _selected_hypothesis(run: ResearchRun) -> Hypothesis | None:
+    return next((hypothesis for hypothesis in run.hypotheses if hypothesis.selected), run.hypotheses[0] if run.hypotheses else None)
+
+
+def _sync_frozen_markers(run: ResearchRun) -> None:
+    frozen_ids = set(run.frozen_evidence_ids) if run.evidence_frozen else set()
+    for item in run.evidence:
+        item.frozen = item.evidence_id in frozen_ids
+
+
+def _paper_ids_for_frozen_evidence(run: ResearchRun) -> list[str]:
+    frozen_ids = set(run.frozen_evidence_ids)
+    evidence_paper_ids = {
+        item.paper_id
+        for item in run.evidence
+        if item.evidence_id in frozen_ids and item.paper_id
+    }
+    ordered = [paper.paper_id for paper in run.papers if paper.paper_id in evidence_paper_ids]
+    extras = sorted(evidence_paper_ids - set(ordered))
+    return ordered + extras
 
 
 def _safe_pdf_path(raw_path: str, data_dir: Path) -> Path:

@@ -10,6 +10,7 @@ from app.agents.report_writer_agent import ReportWriterAgent
 from app.agents.scientific_data_agent import ScientificDataAgent
 from app.config import Settings
 from app.evidence.ledger import evidence_from_papers
+from app.evidence.selection import reportable_evidence
 from app.llm.registry import build_llm_client
 from app.schemas.common import AgentStep, RunStatus, utc_now
 from app.schemas.hypothesis import Hypothesis
@@ -142,6 +143,9 @@ class ScientistWorkflow:
 
     async def _build_evidence(self, run: ResearchRun) -> None:
         run.evidence = evidence_from_papers(run.papers, run.domain)
+        run.evidence_frozen = False
+        run.frozen_evidence_ids = []
+        run.frozen_paper_ids = []
         verified = len([item for item in run.evidence if item.verified])
         run.steps[-1].summary = f"Built {len(run.evidence)} evidence items; {verified} verified."
 
@@ -191,7 +195,7 @@ class ScientistWorkflow:
         run.claim_audit = self.claim_verifier.audit(
             run,
             run.report,
-            run.evidence,
+            reportable_evidence(run),
             _selected_hypothesis(run.hypotheses),
         )
         _write_markdown_report(run, self.settings.data_dir)

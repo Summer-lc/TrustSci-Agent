@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -31,6 +33,9 @@ class EvidenceItem(BaseModel):
     verification_confidence: float | None = None
     matched_source: str | None = None
     eligible_for_report: bool = False
+    human_decision: Literal["pending", "accepted", "rejected"] = "pending"
+    human_note: str = ""
+    frozen: bool = False
     tags: list[str] = Field(default_factory=list)
 
 
@@ -44,3 +49,8 @@ class PdfEvidenceIngestRequest(BaseModel):
     source_title: str = ""
     source_url: str | None = None
     max_pages: int = Field(default=6, ge=1, le=20)
+
+
+class EvidenceDecisionRequest(BaseModel):
+    decision: Literal["pending", "accepted", "rejected"]
+    note: str = ""

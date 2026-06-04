@@ -39,6 +39,8 @@
 - 前端支持将 browser-worker 下载的 PDF 入账为 Evidence。
 - 前端展示 perspectives 与 knowledge cards。
 - 前端展示 research workspace 路径和 artifact 清单。
+- Human Gate v1：Evidence Board 支持接受/拒绝 evidence、冻结/解冻 evidence set。
+- Report Writer / Claim Verifier 已遵守 frozen evidence set；References 由 frozen paper ids 约束。
 - Markdown / JSON report export。
 
 ### 当前缺口
@@ -46,10 +48,10 @@
 - PDF page-level evidence 已有 ingest 闭环，但尚未做到自动下载、自动匹配论文与自动入账。
 - Claim Verifier v1 已实现确定性词汇匹配，仍需升级为 Qwen/embedding 辅助的语义核验。
 - Planner 已有 STORM-style multi-perspective v1，但还没有多轮 simulated conversation。
-- Literature Miner 已有 knowledge cards v1，但还没有 Qwen 抽取和 report outline freeze。
+- Literature Miner 已有 knowledge cards v1，但还没有 Qwen 抽取和完整 report outline freeze。
 - Hypothesis Arena 仍是轻量 mock，没有多 reviewer 角色辩论。
 - Run Workspace 已有文件化 v1，但还没有从 workspace 自动恢复内存态。
-- 前端缺少 human gate：冻结引用、接受/拒绝证据、选择补搜方向。
+- Human Gate 已有 evidence freeze v1；仍缺冻结引用、选择补搜方向和 workspace bundle。
 - 参赛 demo case 需要封版，高质量案例和截图材料还未冻结。
 
 ## 2. 总体阶段
@@ -202,12 +204,13 @@ workspace/run_xxx/
 
 3. Human Gates。
    - 选择候选假设。
-   - 接受/拒绝 evidence。
-   - 冻结 citation set。
+   - 已完成 v1：接受/拒绝 evidence。
+   - 已完成 v1：冻结/解冻 evidence set。
+   - 下一步：冻结 citation set。
    - 要求补搜某个 perspective。
 
 4. 前端交互。
-   - Evidence freeze button。
+   - 已完成 v1：Evidence freeze button。
    - Hypothesis select/revise。
    - Citation approve/reject。
    - Export workspace bundle。
