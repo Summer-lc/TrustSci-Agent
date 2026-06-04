@@ -37,6 +37,7 @@ export function Workbench() {
   const [domain, setDomain] = useState("energy_materials");
   const [maxPapers, setMaxPapers] = useState(6);
   const [enableSemanticScholar, setEnableSemanticScholar] = useState(false);
+  const [enableArxiv, setEnableArxiv] = useState(true);
   const [run, setRun] = useState<ResearchRun | null>(null);
   const [runs, setRuns] = useState<ResearchRun[]>([]);
   const [config, setConfig] = useState<PublicConfig | null>(null);
@@ -91,7 +92,7 @@ export function Workbench() {
     setBusy(true);
     setError("");
     try {
-      const created = await createRun(question, domain, maxPapers, enableSemanticScholar);
+      const created = await createRun(question, domain, maxPapers, enableSemanticScholar, enableArxiv);
       setRun(created);
       const started = await startRun(created.run_id);
       setRun(started);
@@ -134,6 +135,7 @@ export function Workbench() {
           domain={domain}
           maxPapers={maxPapers}
           enableSemanticScholar={enableSemanticScholar}
+          enableArxiv={enableArxiv}
           semanticScholarConfigured={Boolean(config?.semantic_scholar_configured)}
           busy={busy}
           error={error}
@@ -142,6 +144,7 @@ export function Workbench() {
           onDomainChange={setDomain}
           onMaxPapersChange={setMaxPapers}
           onEnableSemanticScholarChange={setEnableSemanticScholar}
+          onEnableArxivChange={setEnableArxiv}
           onStart={handleStart}
           onRefresh={refreshCurrentRun}
         />

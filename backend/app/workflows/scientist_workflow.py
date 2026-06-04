@@ -98,7 +98,7 @@ class ScientistWorkflow:
             [str(query) for query in queries],
             max_papers=run.constraints.max_papers,
             enable_semantic_scholar=run.constraints.enable_semantic_scholar,
-            enable_arxiv=True,
+            enable_arxiv=run.constraints.enable_arxiv,
         )
         sources = sorted({paper.source_api for paper in run.papers})
         stats = ", ".join(f"{source}:{count}" for source, count in self.literature_router.last_source_stats.items())

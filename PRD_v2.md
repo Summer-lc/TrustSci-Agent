@@ -16,7 +16,7 @@
 
 外部仓库分析显示，AutoResearchClaw 与比赛任务最接近，但它面向 idea-to-paper；我们的任务应保持 question-to-report。它最值得吸收的不是论文写作链，而是：
 
-- OpenAlex / Semantic Scholar / arXiv 多源文献检索。
+- OpenAlex / Semantic Scholar / arXiv 多源文献检索，其中 Semantic Scholar 和 arXiv 均可在前端配置区按需启用。
 - DOI / arXiv ID / title 多层引用核验。
 - 不允许虚构引用进入 References。
 - Citation audit log 和 verification report。
@@ -66,7 +66,7 @@ Citation audit log
 系统通过 `LiteratureRouter` 同时整合：
 
 - OpenAlex
-- arXiv
+- arXiv（前端可选启用）
 - Semantic Scholar（前端可选启用）
 
 候选论文按 DOI、arXiv ID、规范化标题去重，并按引用数、年份、标识符完整性排序。
@@ -170,7 +170,7 @@ ResearchConsole
 
 1. Planner Agent 生成 `search_queries`、`sub_questions`、`workflow_plan`。
 2. LiteratureRouter 返回真实论文候选，而不是模型编造论文。
-3. 至少支持 OpenAlex + arXiv，Semantic Scholar 可由前端开关启用。
+3. 默认支持 OpenAlex，Semantic Scholar 与 arXiv 可由前端开关启用。
 4. CitationVerifier 生成结构化 `citation_report`。
 5. 每篇论文包含 `verification_method`、`verification_confidence`、`matched_source`、`report_eligible`。
 6. Evidence Ledger 每条证据包含 `eligible_for_report`。

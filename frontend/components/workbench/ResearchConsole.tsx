@@ -5,6 +5,7 @@ export function ResearchConsole({
   domain,
   maxPapers,
   enableSemanticScholar,
+  enableArxiv,
   semanticScholarConfigured,
   busy,
   error,
@@ -12,6 +13,7 @@ export function ResearchConsole({
   onDomainChange,
   onMaxPapersChange,
   onEnableSemanticScholarChange,
+  onEnableArxivChange,
   onStart,
   onRefresh,
   canRefresh
@@ -20,6 +22,7 @@ export function ResearchConsole({
   domain: string;
   maxPapers: number;
   enableSemanticScholar: boolean;
+  enableArxiv: boolean;
   semanticScholarConfigured: boolean;
   busy: boolean;
   error: string;
@@ -28,6 +31,7 @@ export function ResearchConsole({
   onDomainChange: (value: string) => void;
   onMaxPapersChange: (value: number) => void;
   onEnableSemanticScholarChange: (value: boolean) => void;
+  onEnableArxivChange: (value: boolean) => void;
   onStart: () => void;
   onRefresh: () => void;
 }) {
@@ -66,6 +70,17 @@ export function ResearchConsole({
         <span>
           <strong>Semantic Scholar</strong>
           <small>{semanticScholarConfigured ? "使用 API Key" : "可选补充检索源"}</small>
+        </span>
+      </label>
+      <label className="toggle-row">
+        <input
+          type="checkbox"
+          checked={enableArxiv}
+          onChange={(event) => onEnableArxivChange(event.target.checked)}
+        />
+        <span>
+          <strong>arXiv</strong>
+          <small>预印本补充检索源</small>
         </span>
       </label>
       <button className="primary" onClick={onStart} disabled={busy}>

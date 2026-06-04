@@ -2,6 +2,14 @@ import { Activity, Database, Server } from "lucide-react";
 import { PublicConfig, ResearchRun } from "../../lib/api";
 
 export function StatusStrip({ config, run }: { config: PublicConfig | null; run: ResearchRun | null }) {
+  const semanticEnabled = run?.constraints.enable_semantic_scholar || (!run && config?.semantic_scholar_configured);
+  const arxivEnabled = run?.constraints.enable_arxiv ?? true;
+  const literatureSources = [
+    "OpenAlex",
+    semanticEnabled ? "S2" : "",
+    arxivEnabled ? "arXiv" : ""
+  ].filter(Boolean).join(" + ");
+
   return (
     <div className="status-strip">
       <div className="status-cell">
@@ -13,7 +21,7 @@ export function StatusStrip({ config, run }: { config: PublicConfig | null; run:
       </div>
       <div className="status-cell">
         <Database size={16} />
-        <span>{config?.semantic_scholar_configured ? "OpenAlex + S2 + arXiv" : "OpenAlex + arXiv"}</span>
+        <span>{literatureSources}</span>
         <span className="badge">{config?.materials_project_configured ? "MP" : "local data"}</span>
       </div>
       <div className="status-cell">

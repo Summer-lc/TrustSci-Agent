@@ -13,6 +13,7 @@ async def test_workflow_completes_with_mocked_literature(monkeypatch) -> None:
     workflow = ScientistWorkflow(settings)
 
     async def fake_search(queries, *, max_papers: int, enable_semantic_scholar: bool = False, enable_arxiv: bool = True):
+        assert enable_arxiv is True
         return [
             Paper(
                 paper_id="paper_001",
@@ -64,6 +65,48 @@ async def test_workflow_completes_with_mocked_literature(monkeypatch) -> None:
     assert result.report is not None
     assert result.hypotheses[0].selected is True
     assert result.evidence[0].verified is True
+
+
+@pytest.mark.asyncio
+async def test_workflow_can_disable_arxiv(monkeypatch) -> None:
+    settings = Settings(dashscope_api_key="", max_papers=2)
+    workflow = ScientistWorkflow(settings)
+
+    async def fake_search(queries, *, max_papers: int, enable_semantic_scholar: bool = False, enable_arxiv: bool = True):
+        assert enable_arxiv is False
+        return [
+            Paper(
+                paper_id="openalex_001",
+                title="OpenAlex-only candidate",
+                doi="10.1000/openalex",
+                verification_status="candidate",
+                verified_by=["openalex"],
+                source_api="openalex",
+            )
+        ]
+
+    async def fake_verify_many(papers, *, enable_semantic_scholar: bool = False):
+        for paper in papers:
+            paper.verification_status = "verified"
+            paper.verification_method = "openalex_title"
+            paper.verification_confidence = 0.95
+            paper.report_eligible = True
+        return papers, CitationVerificationReport(total=len(papers), verified=len(papers), integrity_score=1)
+
+    monkeypatch.setattr(workflow.literature_router, "search", fake_search)
+    monkeypatch.setattr(workflow.citation_verifier, "verify_many", fake_verify_many)
+
+    run = ResearchRun(
+        domain="energy_materials",
+        question="Generate a verifiable solid-state electrolyte hypothesis.",
+        constraints=ResearchConstraints(max_papers=1, enable_arxiv=False),
+    )
+
+    result = await workflow.run(run)
+
+    assert result.status == "completed"
+    assert result.constraints.enable_arxiv is False
+    assert {paper.source_api for paper in result.papers} == {"openalex"}
 
 
 @pytest.mark.asyncio

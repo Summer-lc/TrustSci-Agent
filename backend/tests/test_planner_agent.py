@@ -51,6 +51,7 @@ async def test_planner_agent_returns_structured_plan() -> None:
     assert "layered_citation_verifier" in plan["tools_to_call"]
     assert "evidence_requirements" in plan
     assert "enable_browser_worker: True" in llm.requests[0].user
+    assert "enable_arxiv: True" in llm.requests[0].user
 
 
 @pytest.mark.asyncio

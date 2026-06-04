@@ -26,8 +26,8 @@
 - OpenAlex client。
 - Crossref client。
 - Semantic Scholar client，前端可选启用。
-- arXiv client。
-- LiteratureRouter：OpenAlex / Semantic Scholar / arXiv 统一检索。
+- arXiv client，前端可选启用。
+- LiteratureRouter：OpenAlex / Semantic Scholar / arXiv 统一检索，其中 Semantic Scholar 和 arXiv 均由 run constraints 控制。
 - CitationVerifier：arXiv ID、Crossref DOI、DataCite DOI、OpenAlex title、Semantic Scholar title、arXiv title 多层核验。
 - Evidence Ledger v2：记录 verification method、confidence、matched source、report eligibility。
 - 前端展示 citation status、verification method、integrity score。

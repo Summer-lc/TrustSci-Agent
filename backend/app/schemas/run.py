@@ -19,6 +19,7 @@ class ResearchConstraints(BaseModel):
     require_experiment_plan: bool = True
     enable_browser_worker: bool = False
     enable_semantic_scholar: bool = False
+    enable_arxiv: bool = True
 
 
 class ResearchRunCreate(BaseModel):

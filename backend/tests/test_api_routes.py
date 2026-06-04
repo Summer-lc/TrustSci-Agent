@@ -34,11 +34,12 @@ def test_run_detail_endpoints_before_execution() -> None:
     payload = {
         "domain": "energy_materials",
         "question": "Generate a test hypothesis.",
-        "constraints": {"max_papers": 1, "enable_semantic_scholar": True},
+        "constraints": {"max_papers": 1, "enable_semantic_scholar": True, "enable_arxiv": False},
     }
     created = client.post("/api/runs", json=payload)
     assert created.status_code == 200
     assert created.json()["constraints"]["enable_semantic_scholar"] is True
+    assert created.json()["constraints"]["enable_arxiv"] is False
     run_id = created.json()["run_id"]
 
     assert client.get(f"/api/runs/{run_id}/papers").json() == []

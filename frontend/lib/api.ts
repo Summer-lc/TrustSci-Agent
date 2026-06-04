@@ -60,6 +60,7 @@ export type ResearchRun = {
     require_experiment_plan: boolean;
     enable_browser_worker: boolean;
     enable_semantic_scholar: boolean;
+    enable_arxiv: boolean;
   };
   status: string;
   current_stage: string;
@@ -161,7 +162,8 @@ export async function createRun(
   question: string,
   domain: string,
   maxPapers: number,
-  enableSemanticScholar: boolean
+  enableSemanticScholar: boolean,
+  enableArxiv: boolean
 ) {
   return requestJson<ResearchRun>(`${API_BASE}/api/runs`, {
     method: "POST",
@@ -173,7 +175,8 @@ export async function createRun(
         max_papers: maxPapers,
         require_experiment_plan: true,
         enable_browser_worker: false,
-        enable_semantic_scholar: enableSemanticScholar
+        enable_semantic_scholar: enableSemanticScholar,
+        enable_arxiv: enableArxiv
       }
     })
   });

@@ -48,7 +48,9 @@ def _build_user_prompt(run: ResearchRun) -> str:
         f"- must_verify_citations: {run.constraints.must_verify_citations}\n"
         f"- max_papers: {run.constraints.max_papers}\n"
         f"- require_experiment_plan: {run.constraints.require_experiment_plan}\n"
-        f"- enable_browser_worker: {run.constraints.enable_browser_worker}\n\n"
+        f"- enable_browser_worker: {run.constraints.enable_browser_worker}\n"
+        f"- enable_semantic_scholar: {run.constraints.enable_semantic_scholar}\n"
+        f"- enable_arxiv: {run.constraints.enable_arxiv}\n\n"
         "Design a verifiable AI Scientist workflow for this run. Prioritize real papers, "
         "open scientific datasets, explicit evidence requirements, and a bounded experiment plan."
     )
@@ -56,6 +58,8 @@ def _build_user_prompt(run: ResearchRun) -> str:
 
 def _fallback_plan(run: ResearchRun) -> PlannerPlan:
     browser_tool = ["browser_capture"] if run.constraints.enable_browser_worker else []
+    arxiv_tool = ["arxiv_search"] if run.constraints.enable_arxiv else []
+    semantic_tool = ["semantic_scholar_search"] if run.constraints.enable_semantic_scholar else []
     return PlannerPlan(
         research_objective=run.question,
         domain=run.domain,
@@ -90,7 +94,8 @@ def _fallback_plan(run: ResearchRun) -> PlannerPlan:
         tools_to_call=[
             "literature_router",
             "openalex_search",
-            "arxiv_search",
+            *semantic_tool,
+            *arxiv_tool,
             *browser_tool,
             "layered_citation_verifier",
             "pdf_parser",
