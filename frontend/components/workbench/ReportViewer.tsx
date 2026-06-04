@@ -43,6 +43,10 @@ function buildReportPreview(run: ResearchRun | null) {
       ? `Citation Verification: verified ${run.citation_report.verified}/${run.citation_report.total}, integrity ${run.citation_report.integrity_score}`
       : "Citation Verification: pending",
     "",
+    run.claim_audit
+      ? `Claim Audit: supported ${run.claim_audit.supported}/${run.claim_audit.total}, weak ${run.claim_audit.weakly_supported}, unsupported ${run.claim_audit.unsupported}, support ${run.claim_audit.support_score}`
+      : "Claim Audit: pending",
+    "",
     "Citation Audit Log:",
     ...run.report.citation_audit_log.map((item) => `- ${item}`)
   ].join("\n");

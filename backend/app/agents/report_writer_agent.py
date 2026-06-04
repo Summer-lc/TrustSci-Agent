@@ -98,6 +98,8 @@ def _technical_details() -> list[str]:
         "Unified literature router over OpenAlex, Semantic Scholar, and arXiv with DOI/arXiv/title deduplication.",
         "Layered citation verification across arXiv ID, Crossref DOI, DataCite DOI, OpenAlex title, Semantic Scholar title, and arXiv title search before references are allowed.",
         "Evidence ledger with verification method, confidence, matched source, report eligibility, and citation freezing before final report writing.",
+        "PDF page chunks can be ingested into the evidence ledger for page-level support after browser or local PDF capture.",
+        "Claim audit verifies final report claims against eligible evidence and flags unsupported claims for review.",
         "Scientific data profiling for Materials Project and Matbench-compatible result cards.",
         "Deterministic Report Writer mock that assembles structured outputs without inventing citations.",
     ]

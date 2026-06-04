@@ -4,15 +4,18 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import FileResponse
 
 from app.config import get_settings
+from app.schemas.claim import ClaimAuditReport
 from app.schemas.common import RunStatus
 from app.schemas.data import BaselineResultCard, DatasetProfile
-from app.schemas.evidence import EvidenceItem
+from app.evidence.ledger import evidence_from_pdf_chunks
+from app.schemas.evidence import EvidenceItem, PaperChunk, PdfEvidenceIngestRequest
 from app.schemas.hypothesis import Hypothesis
 from app.schemas.paper import Paper
 from app.schemas.report import ResearchReport
 from app.schemas.run import ResearchRun, ResearchRunCreate
 from app.storage.in_memory import run_store
 from app.tools.llm_logger import read_llm_logs
+from app.tools.pdf_parser import parse_pdf_chunks
 from app.workflows.scientist_workflow import ScientistWorkflow
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
@@ -67,6 +70,43 @@ async def get_papers(run_id: str) -> list[Paper]:
 @router.get("/{run_id}/evidence", response_model=list[EvidenceItem])
 async def get_evidence(run_id: str) -> list[EvidenceItem]:
     return _must_get_run(run_id).evidence
+
+
+@router.get("/{run_id}/paper-chunks", response_model=list[PaperChunk])
+async def get_paper_chunks(run_id: str) -> list[PaperChunk]:
+    return _must_get_run(run_id).paper_chunks
+
+
+@router.get("/{run_id}/claim-audit", response_model=ClaimAuditReport | None)
+async def get_claim_audit(run_id: str) -> ClaimAuditReport | None:
+    return _must_get_run(run_id).claim_audit
+
+
+@router.post("/{run_id}/pdf-evidence", response_model=ResearchRun)
+async def ingest_pdf_evidence(run_id: str, payload: PdfEvidenceIngestRequest) -> ResearchRun:
+    run = _must_get_run(run_id)
+    pdf_path = _safe_pdf_path(payload.pdf_path, get_settings().data_dir)
+    paper = next((item for item in run.papers if item.paper_id == payload.paper_id), None)
+    chunks = parse_pdf_chunks(
+        pdf_path,
+        paper_id=payload.paper_id,
+        source_title=payload.source_title or (paper.title if paper else ""),
+        source_url=payload.source_url or (paper.source_url if paper else None),
+        max_pages=payload.max_pages,
+    )
+    run.paper_chunks.extend(chunks)
+    run.evidence.extend(
+        evidence_from_pdf_chunks(
+            chunks,
+            domain=run.domain,
+            start_index=len(run.evidence) + 1,
+            verified=paper.verification_status == "verified" if paper else False,
+            verification_method=paper.verification_method if paper else None,
+            verification_confidence=paper.verification_confidence if paper else None,
+            matched_source=paper.matched_source if paper else None,
+        )
+    )
+    return run_store.save(run)
 
 
 @router.get("/{run_id}/data-profiles", response_model=list[DatasetProfile])
@@ -159,3 +199,19 @@ def _must_get_run(run_id: str) -> ResearchRun:
     if run is None:
         raise HTTPException(status_code=404, detail="run not found")
     return run
+
+
+def _safe_pdf_path(raw_path: str, data_dir: Path) -> Path:
+    path = Path(raw_path)
+    if not path.is_absolute():
+        path = Path.cwd() / path
+    path = path.resolve()
+    data_root = data_dir if data_dir.is_absolute() else Path.cwd() / data_dir
+    data_root = data_root.resolve()
+    if not path.is_relative_to(data_root):
+        raise HTTPException(status_code=400, detail="pdf path must be under DATA_DIR")
+    if not path.exists() or not path.is_file():
+        raise HTTPException(status_code=404, detail="pdf not found")
+    if path.suffix.lower() != ".pdf":
+        raise HTTPException(status_code=400, detail="path must point to a pdf file")
+    return path

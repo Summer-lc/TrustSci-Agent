@@ -30,14 +30,16 @@
 - LiteratureRouter：OpenAlex / Semantic Scholar / arXiv 统一检索，其中 Semantic Scholar 和 arXiv 均由 run constraints 控制。
 - CitationVerifier：arXiv ID、Crossref DOI、DataCite DOI、OpenAlex title、Semantic Scholar title、arXiv title 多层核验。
 - Evidence Ledger v2：记录 verification method、confidence、matched source、report eligibility。
+- PDF chunk parser 与 run 级 PDF evidence ingest endpoint。
+- Claim Verifier v1：对 final report claims 进行 evidence ledger 反查并生成 claim audit。
 - 前端展示 citation status、verification method、integrity score。
+- 前端支持将 browser-worker 下载的 PDF 入账为 Evidence。
 - Markdown / JSON report export。
 
 ### 当前缺口
 
-- PDF 下载后的正文解析还没有接入 Evidence Ledger。
-- Evidence Ledger 仍主要基于论文摘要，不是 page-level evidence。
-- Claim Verifier 尚未实现，报告中的 claim 还没有逐条反查证据。
+- PDF page-level evidence 已有 ingest 闭环，但尚未做到自动下载、自动匹配论文与自动入账。
+- Claim Verifier v1 已实现确定性词汇匹配，仍需升级为 Qwen/embedding 辅助的语义核验。
 - Planner 还不是 STORM-style multi-perspective planner。
 - Hypothesis Arena 仍是轻量 mock，没有多 reviewer 角色辩论。
 - 缺少持久化 run workspace。

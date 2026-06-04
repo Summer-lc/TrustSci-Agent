@@ -9,7 +9,12 @@ export function EvidenceBoard({ run }: { run: ResearchRun | null }) {
         {(run?.evidence || []).slice(0, 6).map((item) => (
           <article className="item" key={item.evidence_id}>
             <div className="item-title">{item.claim}</div>
-            <div className="item-meta">{item.source_title}</div>
+            <div className="item-meta">
+              {item.source_title}
+              {item.page ? ` · page ${item.page}` : ""}
+              {item.section ? ` · ${item.section}` : ""}
+              {item.evidence_type ? ` · ${item.evidence_type}` : ""}
+            </div>
             <p className="muted">{item.quote_or_summary}</p>
             <div className="item-meta">
               {item.verification_method || "pending"} · confidence {item.verification_confidence ?? "n/a"}

@@ -3,10 +3,11 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from app.schemas.claim import ClaimAuditReport
 from app.schemas.common import AgentStep, RunStatus, utc_now
 from app.schemas.citation import CitationVerificationReport
 from app.schemas.data import BaselineResultCard, DatasetProfile
-from app.schemas.evidence import EvidenceItem
+from app.schemas.evidence import EvidenceItem, PaperChunk
 from app.schemas.experiment import ExperimentPlan
 from app.schemas.hypothesis import Hypothesis
 from app.schemas.paper import Paper
@@ -42,7 +43,9 @@ class ResearchRun(BaseModel):
     steps: list[AgentStep] = Field(default_factory=list)
     papers: list[Paper] = Field(default_factory=list)
     citation_report: CitationVerificationReport | None = None
+    paper_chunks: list[PaperChunk] = Field(default_factory=list)
     evidence: list[EvidenceItem] = Field(default_factory=list)
+    claim_audit: ClaimAuditReport | None = None
     data_profiles: list[DatasetProfile] = Field(default_factory=list)
     baseline_result_card: BaselineResultCard | None = None
     hypotheses: list[Hypothesis] = Field(default_factory=list)

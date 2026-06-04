@@ -1,6 +1,18 @@
 from pydantic import BaseModel, Field
 
 
+class PaperChunk(BaseModel):
+    chunk_id: str
+    paper_id: str | None = None
+    source_title: str = ""
+    source_path: str | None = None
+    source_url: str | None = None
+    page: int | None = None
+    section: str | None = None
+    text: str
+    token_estimate: int = 0
+
+
 class EvidenceItem(BaseModel):
     evidence_id: str
     paper_id: str | None = None
@@ -8,8 +20,10 @@ class EvidenceItem(BaseModel):
     evidence_type: str = "paper"
     source_title: str = ""
     source_url: str | None = None
+    source_path: str | None = None
     doi: str | None = None
     page: int | None = None
+    section: str | None = None
     quote_or_summary: str
     confidence: float = 0.7
     verified: bool = False
@@ -22,3 +36,11 @@ class EvidenceItem(BaseModel):
 
 class EvidenceLedger(BaseModel):
     items: list[EvidenceItem] = Field(default_factory=list)
+
+
+class PdfEvidenceIngestRequest(BaseModel):
+    pdf_path: str
+    paper_id: str | None = None
+    source_title: str = ""
+    source_url: str | None = None
+    max_pages: int = Field(default=6, ge=1, le=20)

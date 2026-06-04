@@ -15,6 +15,7 @@ from app.schemas.hypothesis import Hypothesis
 from app.schemas.run import ResearchRun
 from app.storage.in_memory import run_store
 from app.tools.arxiv_client import ArxivClient
+from app.tools.claim_verifier import ClaimVerifier
 from app.tools.citation_verifier import CitationVerifier
 from app.tools.crossref_client import CrossrefClient
 from app.tools.literature_router import LiteratureRouter
@@ -43,6 +44,7 @@ class ScientistWorkflow:
             semantic_scholar=self.semantic_scholar,
             arxiv=self.arxiv,
         )
+        self.claim_verifier = ClaimVerifier()
         self.planner = PlannerAgent(self.llm)
         self.gap_finder = GapFinderAgent()
         self.hypothesis_agent = HypothesisAgent()
@@ -65,6 +67,7 @@ class ScientistWorkflow:
             await self._step(run, "hypothesis_debate", self._generate_and_critique)
             await self._step(run, "experiment_design", self._design_experiment)
             await self._step(run, "report_writer", self._write_report)
+            await self._step(run, "claim_verification", self._verify_claims)
             run.status = RunStatus.completed
             run.current_stage = "completed"
             run.progress = 1.0
@@ -157,6 +160,22 @@ class ScientistWorkflow:
         _write_markdown_report(run, self.settings.data_dir)
         run.steps[-1].summary = "Exported contest-format report with citation audit log."
 
+    async def _verify_claims(self, run: ResearchRun) -> None:
+        if run.report is None:
+            run.steps[-1].summary = "Skipped claim verification because no report was generated."
+            return
+        run.claim_audit = self.claim_verifier.audit(
+            run,
+            run.report,
+            run.evidence,
+            _selected_hypothesis(run.hypotheses),
+        )
+        _write_markdown_report(run, self.settings.data_dir)
+        run.steps[-1].summary = (
+            f"Audited {run.claim_audit.total} report claims; "
+            f"support_score={run.claim_audit.support_score}."
+        )
+
 
 def _selected_hypothesis(hypotheses: list[Hypothesis]) -> Hypothesis | None:
     return next((hypothesis for hypothesis in hypotheses if hypothesis.selected), hypotheses[0] if hypotheses else None)
@@ -177,6 +196,11 @@ def _write_markdown_report(run: ResearchRun, data_dir: Path) -> None:
         run.citation_report.model_dump_json(indent=2)
         if run.citation_report
         else "No citation verification report generated."
+    )
+    claim_audit = (
+        run.claim_audit.model_dump_json(indent=2)
+        if run.claim_audit
+        else "No claim audit report generated."
     )
     methods = "\n".join(f"- {item}" for item in report.methods)
     data_profiles = "\n".join(
@@ -200,6 +224,7 @@ def _write_markdown_report(run: ResearchRun, data_dir: Path) -> None:
         f"## Results\n{report.results}\n\n"
         f"## References\n{references}\n\n"
         f"## Citation Verification Report\n{citation_report}\n\n"
+        f"## Claim Audit Report\n{claim_audit}\n\n"
         f"## Citation Audit Log\n{audit}\n",
         encoding="utf-8",
     )

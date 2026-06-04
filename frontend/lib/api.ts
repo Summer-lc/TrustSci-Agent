@@ -82,10 +82,26 @@ export type ResearchRun = {
     matched_source?: string;
     report_eligible: boolean;
   }>;
+  paper_chunks: Array<{
+    chunk_id: string;
+    paper_id?: string;
+    source_title: string;
+    source_path?: string;
+    source_url?: string;
+    page?: number;
+    section?: string;
+    text: string;
+    token_estimate: number;
+  }>;
   evidence: Array<{
     evidence_id: string;
     claim: string;
+    evidence_type: string;
     source_title: string;
+    source_path?: string;
+    source_url?: string;
+    page?: number;
+    section?: string;
     verified: boolean;
     quote_or_summary: string;
     verification_method?: string;
@@ -100,6 +116,21 @@ export type ResearchRun = {
     hallucinated: number;
     skipped: number;
     integrity_score: number;
+  };
+  claim_audit?: {
+    total: number;
+    supported: number;
+    weakly_supported: number;
+    unsupported: number;
+    support_score: number;
+    items: Array<{
+      claim_id: string;
+      claim: string;
+      status: string;
+      confidence: number;
+      matched_evidence_ids: string[];
+      reason: string;
+    }>;
   };
   data_profiles: DatasetProfile[];
   baseline_result_card?: BaselineResultCard;
@@ -210,6 +241,13 @@ export async function captureBrowserPage(url: string) {
   return requestJson<BrowserCaptureResult>(`${API_BASE}/api/browser/capture`, {
     method: "POST",
     body: JSON.stringify({ url, download_pdfs: true, max_pdf_downloads: 3 })
+  });
+}
+
+export async function ingestPdfEvidence(runId: string, pdfPath: string) {
+  return requestJson<ResearchRun>(`${API_BASE}/api/runs/${runId}/pdf-evidence`, {
+    method: "POST",
+    body: JSON.stringify({ pdf_path: pdfPath })
   });
 }
 

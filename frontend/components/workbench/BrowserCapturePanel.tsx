@@ -6,15 +6,19 @@ export function BrowserCapturePanel({
   result,
   busy,
   error,
+  canIngestPdf,
   onUrlChange,
-  onCapture
+  onCapture,
+  onIngestPdf
 }: {
   url: string;
   result: BrowserCaptureResult | null;
   busy: boolean;
   error: string;
+  canIngestPdf: boolean;
   onUrlChange: (value: string) => void;
   onCapture: () => void;
+  onIngestPdf: (path: string) => void;
 }) {
   return (
     <section className="panel span-6">
@@ -34,9 +38,18 @@ export function BrowserCapturePanel({
           <p className="muted">HTML {result.html_path}</p>
           <p className="muted">Screenshot {result.screenshot_path}</p>
           <p className="muted">PDF links {result.pdf_links.length} · downloads {result.downloaded_pdfs.length}</p>
+          {result.downloaded_pdfs.map((pdf, index) => (
+            <div className="item compact" key={`${pdf.path || pdf.url || index}`}>
+              <div className="item-meta">{String(pdf.path || pdf.url || "PDF")}</div>
+              {"path" in pdf && typeof pdf.path === "string" && (
+                <button className="secondary" onClick={() => onIngestPdf(pdf.path as string)} disabled={!canIngestPdf}>
+                  入账 Evidence
+                </button>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </section>
   );
 }
-

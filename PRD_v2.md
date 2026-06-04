@@ -192,16 +192,13 @@ ResearchConsole
 
 ### v2.1 PDF Evidence
 
-- 下载/上传 PDF。
-- PDF chunk parser。
-- claim -> page evidence。
-- page-level citation。
+- 已落地 v1：PDF chunk parser、run 级 PDF evidence ingest、Evidence Ledger page 字段。
+- 后续增强：自动下载/上传 PDF、自动匹配论文、claim -> page evidence、page-level citation。
 
 ### v2.2 Claim Verifier
 
-- 从报告中抽取关键 claim。
-- 逐条匹配 evidence ledger。
-- 未支撑 claim 自动降级或移入风险说明。
+- 已落地 v1：从报告中抽取关键 claim，逐条匹配 eligible evidence ledger，并输出 claim audit report。
+- 后续增强：Qwen/embedding 语义核验、unsupported claim 自动降级或移入风险说明。
 
 ### v2.3 Research Workspace
 

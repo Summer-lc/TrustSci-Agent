@@ -11,6 +11,7 @@ import {
   getDataProfiles,
   getPublicConfig,
   getRun,
+  ingestPdfEvidence,
   listRuns,
   PublicConfig,
   ResearchRun,
@@ -123,6 +124,21 @@ export function Workbench() {
     }
   }
 
+  async function handleIngestPdf(path: string) {
+    if (!run) return;
+    setCaptureBusy(true);
+    setCaptureError("");
+    try {
+      const next = await ingestPdfEvidence(run.run_id, path);
+      setRun(next);
+      await refreshRuns();
+    } catch (err) {
+      setCaptureError(err instanceof Error ? err.message : "PDF evidence ingest failed");
+    } finally {
+      setCaptureBusy(false);
+    }
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -174,8 +190,10 @@ export function Workbench() {
             result={captureResult}
             busy={captureBusy}
             error={captureError}
+            canIngestPdf={Boolean(run)}
             onUrlChange={setCaptureUrl}
             onCapture={handleCapture}
+            onIngestPdf={handleIngestPdf}
           />
           <ReportViewer run={run} />
         </div>
