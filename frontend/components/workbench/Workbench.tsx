@@ -23,6 +23,8 @@ import { CitationVerifier } from "./CitationVerifier";
 import { EvidenceBoard } from "./EvidenceBoard";
 import { ExperimentPlanPanel } from "./ExperimentPlanPanel";
 import { HypothesisArena } from "./HypothesisArena";
+import { KnowledgeCardsPanel } from "./KnowledgeCardsPanel";
+import { PerspectivePlanPanel } from "./PerspectivePlanPanel";
 import { ReportViewer } from "./ReportViewer";
 import { ResearchConsole } from "./ResearchConsole";
 import { RunHistory } from "./RunHistory";
@@ -180,7 +182,9 @@ export function Workbench() {
 
         <div className="grid">
           <RunTimeline run={run} />
+          <PerspectivePlanPanel run={run} />
           <EvidenceBoard run={run} />
+          <KnowledgeCardsPanel run={run} />
           <CitationVerifier run={run} />
           <ScientificDataPanel run={run} profiles={profiles} baseline={baseline} />
           <HypothesisArena run={run} />

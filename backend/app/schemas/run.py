@@ -10,7 +10,9 @@ from app.schemas.data import BaselineResultCard, DatasetProfile
 from app.schemas.evidence import EvidenceItem, PaperChunk
 from app.schemas.experiment import ExperimentPlan
 from app.schemas.hypothesis import Hypothesis
+from app.schemas.knowledge import KnowledgeCard
 from app.schemas.paper import Paper
+from app.schemas.planner import PerspectiveQuestion
 from app.schemas.report import ResearchReport
 
 
@@ -40,11 +42,13 @@ class ResearchRun(BaseModel):
     created_at: Any = Field(default_factory=utc_now)
     updated_at: Any = Field(default_factory=utc_now)
     plan: dict[str, Any] = Field(default_factory=dict)
+    perspectives: list[PerspectiveQuestion] = Field(default_factory=list)
     steps: list[AgentStep] = Field(default_factory=list)
     papers: list[Paper] = Field(default_factory=list)
     citation_report: CitationVerificationReport | None = None
     paper_chunks: list[PaperChunk] = Field(default_factory=list)
     evidence: list[EvidenceItem] = Field(default_factory=list)
+    knowledge_cards: list[KnowledgeCard] = Field(default_factory=list)
     claim_audit: ClaimAuditReport | None = None
     data_profiles: list[DatasetProfile] = Field(default_factory=list)
     baseline_result_card: BaselineResultCard | None = None

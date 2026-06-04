@@ -32,15 +32,19 @@
 - Evidence Ledger v2：记录 verification method、confidence、matched source、report eligibility。
 - PDF chunk parser 与 run 级 PDF evidence ingest endpoint。
 - Claim Verifier v1：对 final report claims 进行 evidence ledger 反查并生成 claim audit。
+- Perspective Planner v1：输出领域专家、ML/数据专家、实验专家、审稿人和应用视角问题。
+- Literature Miner v1：从 evidence ledger 生成 knowledge cards。
 - 前端展示 citation status、verification method、integrity score。
 - 前端支持将 browser-worker 下载的 PDF 入账为 Evidence。
+- 前端展示 perspectives 与 knowledge cards。
 - Markdown / JSON report export。
 
 ### 当前缺口
 
 - PDF page-level evidence 已有 ingest 闭环，但尚未做到自动下载、自动匹配论文与自动入账。
 - Claim Verifier v1 已实现确定性词汇匹配，仍需升级为 Qwen/embedding 辅助的语义核验。
-- Planner 还不是 STORM-style multi-perspective planner。
+- Planner 已有 STORM-style multi-perspective v1，但还没有多轮 simulated conversation。
+- Literature Miner 已有 knowledge cards v1，但还没有 Qwen 抽取和 report outline freeze。
 - Hypothesis Arena 仍是轻量 mock，没有多 reviewer 角色辩论。
 - 缺少持久化 run workspace。
 - 前端缺少 human gate：冻结引用、接受/拒绝证据、选择补搜方向。
@@ -380,11 +384,11 @@ workspace/run_xxx/
 
 交付：
 
-- STORM-style perspectives。
-- query expansion。
-- Literature Miner Agent。
-- knowledge cards。
-- evidence-driven outline。
+- 已完成 v1：STORM-style perspectives。
+- 已完成 v1：Literature Miner Agent。
+- 已完成 v1：knowledge cards。
+- 下一步：query expansion 按 perspective 分配来源。
+- 下一步：evidence-driven outline 与 citation freeze。
 
 ### Sprint C: Workspace and Human Gate
 

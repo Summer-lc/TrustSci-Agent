@@ -46,6 +46,8 @@ def test_run_detail_endpoints_before_execution() -> None:
 
     assert client.get(f"/api/runs/{run_id}/papers").json() == []
     assert client.get(f"/api/runs/{run_id}/evidence").json() == []
+    assert client.get(f"/api/runs/{run_id}/perspectives").json() == []
+    assert client.get(f"/api/runs/{run_id}/knowledge-cards").json() == []
     assert client.get(f"/api/runs/{run_id}/paper-chunks").json() == []
     assert client.get(f"/api/runs/{run_id}/claim-audit").json() is None
     assert client.get(f"/api/runs/{run_id}/hypotheses").json() == []

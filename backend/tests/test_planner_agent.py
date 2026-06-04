@@ -35,6 +35,16 @@ async def test_planner_agent_returns_structured_plan() -> None:
             "search_queries": ["solid electrolyte ionic conductivity mechanism"],
             "workflow_plan": ["retrieve papers", "verify citations"],
             "tools_to_call": ["literature_router", "layered_citation_verifier"],
+            "perspectives": [
+                {
+                    "perspective": "domain_mechanism",
+                    "role": "Materials scientist",
+                    "question": "Which mechanisms matter?",
+                    "search_query": "solid electrolyte mechanism",
+                    "evidence_requirement": "Mechanism claims need verified papers.",
+                    "risk_control": "Avoid unsupported causal claims.",
+                }
+            ],
         }
     )
     agent = PlannerAgent(llm)
@@ -50,6 +60,7 @@ async def test_planner_agent_returns_structured_plan() -> None:
     assert plan["search_queries"] == ["solid electrolyte ionic conductivity mechanism"]
     assert "layered_citation_verifier" in plan["tools_to_call"]
     assert "evidence_requirements" in plan
+    assert plan["perspectives"][0]["role"] == "Materials scientist"
     assert "enable_browser_worker: True" in llm.requests[0].user
     assert "enable_arxiv: True" in llm.requests[0].user
 
@@ -68,6 +79,7 @@ async def test_planner_agent_falls_back_for_invalid_llm_content() -> None:
     assert len(plan["sub_questions"]) >= 3
     assert len(plan["search_queries"]) >= 3
     assert "experiment_design" in " ".join(plan["workflow_plan"])
+    assert len(plan["perspectives"]) >= 4
 
 
 @pytest.mark.asyncio
@@ -87,6 +99,7 @@ async def test_planner_agent_acceptance_with_qwen_fallback_logs_call(tmp_path) -
     assert all(isinstance(item, str) and item for item in plan["search_queries"])
     assert all(isinstance(item, str) and item for item in plan["sub_questions"])
     assert all(isinstance(item, str) and item for item in plan["workflow_plan"])
+    assert plan["perspectives"]
 
     logs = read_llm_logs(tmp_path, run.run_id)
     assert len(logs) == 1
@@ -97,3 +110,4 @@ async def test_planner_agent_acceptance_with_qwen_fallback_logs_call(tmp_path) -
     assert logs[0]["response"]["search_queries"]
     assert logs[0]["response"]["sub_questions"]
     assert logs[0]["response"]["workflow_plan"]
+    assert logs[0]["response"]["perspectives"]

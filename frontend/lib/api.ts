@@ -66,6 +66,14 @@ export type ResearchRun = {
   current_stage: string;
   progress: number;
   plan: Record<string, unknown>;
+  perspectives: Array<{
+    perspective: string;
+    role: string;
+    question: string;
+    search_query: string;
+    evidence_requirement: string;
+    risk_control: string;
+  }>;
   steps: Array<{ name: string; status: string; summary: string }>;
   papers: Array<{
     paper_id: string;
@@ -108,6 +116,20 @@ export type ResearchRun = {
     verification_confidence?: number;
     matched_source?: string;
     eligible_for_report: boolean;
+  }>;
+  knowledge_cards: Array<{
+    card_id: string;
+    title: string;
+    perspective: string;
+    finding: string;
+    method: string;
+    dataset: string;
+    limitation: string;
+    transferability: string;
+    evidence_ids: string[];
+    paper_ids: string[];
+    confidence: number;
+    report_eligible: boolean;
   }>;
   citation_report?: {
     total: number;
@@ -163,6 +185,12 @@ export type ResearchRun = {
     problem_statement: string;
     rationale: string;
     methods: string[];
+    knowledge_cards: Array<{
+      card_id: string;
+      finding: string;
+      perspective: string;
+      evidence_ids: string[];
+    }>;
     results: string;
     baseline_result_card?: {
       name: string;

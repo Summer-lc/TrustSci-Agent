@@ -48,6 +48,7 @@ def test_claim_verifier_audits_report_against_eligible_evidence() -> None:
         evidence,
         [],
         [],
+        [],
         BaselineResultCard(
             name="mean_baseline",
             dataset="solid_electrolyte_candidates",
@@ -84,7 +85,7 @@ def test_claim_verifier_marks_claims_unsupported_without_eligible_evidence() -> 
         expected_results="none",
         failure_modes=[],
     )
-    report = ReportWriterAgent().run(run, None, experiment, [], [], [], None)
+    report = ReportWriterAgent().run(run, None, experiment, [], [], [], [], None)
 
     audit = ClaimVerifier().audit(run, report, [], None)
 

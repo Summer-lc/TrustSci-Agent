@@ -4,6 +4,7 @@ from app.agents.critic_agent import CriticAgent
 from app.agents.experiment_designer_agent import ExperimentDesignerAgent
 from app.agents.gap_finder_agent import GapFinderAgent
 from app.agents.hypothesis_agent import HypothesisAgent
+from app.agents.literature_miner_agent import LiteratureMinerAgent
 from app.agents.planner_agent import PlannerAgent
 from app.agents.report_writer_agent import ReportWriterAgent
 from app.agents.scientific_data_agent import ScientificDataAgent
@@ -12,6 +13,7 @@ from app.evidence.ledger import evidence_from_papers
 from app.llm.registry import build_llm_client
 from app.schemas.common import AgentStep, RunStatus, utc_now
 from app.schemas.hypothesis import Hypothesis
+from app.schemas.planner import PerspectiveQuestion
 from app.schemas.run import ResearchRun
 from app.storage.in_memory import run_store
 from app.tools.arxiv_client import ArxivClient
@@ -46,6 +48,7 @@ class ScientistWorkflow:
         )
         self.claim_verifier = ClaimVerifier()
         self.planner = PlannerAgent(self.llm)
+        self.literature_miner = LiteratureMinerAgent()
         self.gap_finder = GapFinderAgent()
         self.hypothesis_agent = HypothesisAgent()
         self.critic = CriticAgent()
@@ -63,6 +66,7 @@ class ScientistWorkflow:
             await self._step(run, "literature_search", self._search_literature)
             await self._step(run, "citation_verification", self._verify_citations)
             await self._step(run, "evidence_ledger", self._build_evidence)
+            await self._step(run, "literature_mining", self._mine_literature)
             await self._step(run, "scientific_data_profile", self._profile_scientific_data)
             await self._step(run, "hypothesis_debate", self._generate_and_critique)
             await self._step(run, "experiment_design", self._design_experiment)
@@ -93,7 +97,15 @@ class ScientistWorkflow:
 
     async def _plan(self, run: ResearchRun) -> None:
         run.plan = await self.planner.run(run)
-        run.steps[-1].summary = f"Generated {len(run.plan.get('search_queries', []))} search queries."
+        run.perspectives = [
+            PerspectiveQuestion.model_validate(item)
+            for item in run.plan.get("perspectives", [])
+            if isinstance(item, dict)
+        ]
+        run.steps[-1].summary = (
+            f"Generated {len(run.plan.get('search_queries', []))} search queries "
+            f"and {len(run.perspectives)} perspectives."
+        )
 
     async def _search_literature(self, run: ResearchRun) -> None:
         queries = run.plan.get("search_queries") or [run.question]
@@ -127,6 +139,11 @@ class ScientistWorkflow:
         verified = len([item for item in run.evidence if item.verified])
         run.steps[-1].summary = f"Built {len(run.evidence)} evidence items; {verified} verified."
 
+    async def _mine_literature(self, run: ResearchRun) -> None:
+        run.knowledge_cards = self.literature_miner.run(run.evidence, run.papers, run.perspectives)
+        eligible = len([card for card in run.knowledge_cards if card.report_eligible])
+        run.steps[-1].summary = f"Generated {len(run.knowledge_cards)} knowledge cards; {eligible} report-ready."
+
     async def _generate_and_critique(self, run: ResearchRun) -> None:
         gaps = self.gap_finder.run(run.evidence)
         run.hypotheses = self.critic.run(self.hypothesis_agent.run(gaps))
@@ -154,6 +171,7 @@ class ScientistWorkflow:
             run.experiment_plan,
             run.evidence,
             run.papers,
+            run.knowledge_cards,
             run.data_profiles,
             run.baseline_result_card,
         )
@@ -203,6 +221,11 @@ def _write_markdown_report(run: ResearchRun, data_dir: Path) -> None:
         else "No claim audit report generated."
     )
     methods = "\n".join(f"- {item}" for item in report.methods)
+    knowledge_cards = "\n".join(
+        f"- {card.card_id}: {card.finding} "
+        f"(perspective={card.perspective}, evidence={','.join(card.evidence_ids) or 'none'})"
+        for card in report.knowledge_cards
+    )
     data_profiles = "\n".join(
         f"- {profile.name}: {profile.rows or 'n/a'} rows, target={profile.target}, availability={profile.availability}"
         for profile in report.data_profiles
@@ -218,6 +241,7 @@ def _write_markdown_report(run: ResearchRun, data_dir: Path) -> None:
         f"## Source\n{report.source}\n\n"
         f"## Target\n{report.target}\n\n"
         f"## Methods\n{methods}\n\n"
+        f"## Knowledge Cards\n{knowledge_cards or '- None'}\n\n"
         f"## Data Profiles\n{data_profiles}\n\n"
         f"## Experiments\n{report.experiments.model_dump_json(indent=2)}\n\n"
         f"## Baseline Result Card\n{result_card}\n\n"

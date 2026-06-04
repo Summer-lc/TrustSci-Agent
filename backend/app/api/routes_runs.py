@@ -10,7 +10,9 @@ from app.schemas.data import BaselineResultCard, DatasetProfile
 from app.evidence.ledger import evidence_from_pdf_chunks
 from app.schemas.evidence import EvidenceItem, PaperChunk, PdfEvidenceIngestRequest
 from app.schemas.hypothesis import Hypothesis
+from app.schemas.knowledge import KnowledgeCard
 from app.schemas.paper import Paper
+from app.schemas.planner import PerspectiveQuestion
 from app.schemas.report import ResearchReport
 from app.schemas.run import ResearchRun, ResearchRunCreate
 from app.storage.in_memory import run_store
@@ -70,6 +72,16 @@ async def get_papers(run_id: str) -> list[Paper]:
 @router.get("/{run_id}/evidence", response_model=list[EvidenceItem])
 async def get_evidence(run_id: str) -> list[EvidenceItem]:
     return _must_get_run(run_id).evidence
+
+
+@router.get("/{run_id}/perspectives", response_model=list[PerspectiveQuestion])
+async def get_perspectives(run_id: str) -> list[PerspectiveQuestion]:
+    return _must_get_run(run_id).perspectives
+
+
+@router.get("/{run_id}/knowledge-cards", response_model=list[KnowledgeCard])
+async def get_knowledge_cards(run_id: str) -> list[KnowledgeCard]:
+    return _must_get_run(run_id).knowledge_cards
 
 
 @router.get("/{run_id}/paper-chunks", response_model=list[PaperChunk])

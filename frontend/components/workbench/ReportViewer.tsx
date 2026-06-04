@@ -37,6 +37,9 @@ function buildReportPreview(run: ResearchRun | null) {
     "Methods:",
     ...run.report.methods.map((item) => `- ${item}`),
     "",
+    "Knowledge Cards:",
+    ...(run.report.knowledge_cards || []).slice(0, 5).map((card) => `- ${card.card_id}: ${card.finding}`),
+    "",
     `Results: ${run.report.results}`,
     "",
     run.citation_report

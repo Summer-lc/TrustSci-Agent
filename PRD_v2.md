@@ -57,6 +57,7 @@ Citation audit log
 
 - `sub_questions`
 - `search_queries`
+- `perspectives`
 - `workflow_plan`
 - `evidence_requirements`
 - `risk_controls`
@@ -114,6 +115,16 @@ Citation audit log
 
 ### 4.5 假设生成与评审
 
+在假设生成前，系统会从 verified evidence 生成 Literature Knowledge Cards：
+
+- finding
+- method
+- dataset
+- limitation
+- transferability
+- evidence ids
+- report eligibility
+
 系统生成多个候选假设，并由 Critic Agent 评分：
 
 - novelty
@@ -157,6 +168,7 @@ ResearchConsole
        -> Semantic Scholar title
        -> arXiv title
   -> EvidenceLedger
+  -> LiteratureMinerAgent
   -> ScientificDataAgent
   -> HypothesisAgent
   -> CriticAgent
@@ -174,10 +186,12 @@ ResearchConsole
 4. CitationVerifier 生成结构化 `citation_report`。
 5. 每篇论文包含 `verification_method`、`verification_confidence`、`matched_source`、`report_eligible`。
 6. Evidence Ledger 每条证据包含 `eligible_for_report`。
-7. Report Writer 只把 verified 且 report eligible 的论文放入 References。
-8. Final report 导出 Markdown 和 JSON。
-9. 前端展示 citation status、verification method、integrity score。
-10. 测试覆盖 arXiv client、literature router、citation verifier、workflow。
+7. Planner 输出多视角 `perspectives`，覆盖领域专家、ML/数据专家、实验专家、审稿人和应用视角。
+8. LiteratureMiner 输出 knowledge cards，且每张卡绑定 evidence ids。
+9. Report Writer 只把 verified 且 report eligible 的论文放入 References。
+10. Final report 导出 Markdown 和 JSON。
+11. 前端展示 citation status、verification method、integrity score、perspectives 和 knowledge cards。
+12. 测试覆盖 arXiv client、literature router、citation verifier、planner perspectives、knowledge cards、workflow。
 
 ## 7. 暂不纳入 MVP 的能力
 

@@ -3,6 +3,7 @@ from app.schemas.data import BaselineResultCard, DatasetProfile
 from app.schemas.evidence import EvidenceItem
 from app.schemas.experiment import ExperimentPlan
 from app.schemas.hypothesis import CriticReview, Hypothesis
+from app.schemas.knowledge import KnowledgeCard
 from app.schemas.paper import Paper
 from app.schemas.run import ResearchConstraints, ResearchRun
 
@@ -36,6 +37,7 @@ def test_report_writer_uses_only_verified_references() -> None:
         _experiment(),
         [_evidence()],
         [verified, rejected],
+        [_knowledge_card()],
         [_data_profile()],
         _baseline_card(),
     )
@@ -46,6 +48,7 @@ def test_report_writer_uses_only_verified_references() -> None:
     assert "baseline result card" in report.results
     assert report.paper_abstract
     assert report.technical_details
+    assert report.knowledge_cards == [_knowledge_card()]
 
 
 def test_report_writer_marks_results_pending_without_verified_inputs() -> None:
@@ -65,6 +68,7 @@ def test_report_writer_marks_results_pending_without_verified_inputs() -> None:
         _experiment(),
         [],
         [unverified],
+        [],
         [],
         None,
     )
@@ -127,6 +131,19 @@ def _data_profile() -> DatasetProfile:
         fields=["formula", "ionic_conductivity_proxy"],
         target="ionic_conductivity_proxy",
         task_type="regression",
+    )
+
+
+def _knowledge_card() -> KnowledgeCard:
+    return KnowledgeCard(
+        card_id="kc_001",
+        title="Verified solid electrolyte paper",
+        perspective="domain_mechanism",
+        finding="Substitution can alter transport bottlenecks.",
+        evidence_ids=["e1"],
+        paper_ids=["p_verified"],
+        confidence=0.9,
+        report_eligible=True,
     )
 
 

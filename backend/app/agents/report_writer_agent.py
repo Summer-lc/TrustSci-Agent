@@ -3,6 +3,7 @@ from app.schemas.data import BaselineResultCard, DatasetProfile
 from app.schemas.evidence import EvidenceItem
 from app.schemas.experiment import ExperimentPlan
 from app.schemas.hypothesis import Hypothesis
+from app.schemas.knowledge import KnowledgeCard
 from app.schemas.paper import Paper
 from app.schemas.report import ResearchReport
 from app.schemas.run import ResearchRun
@@ -22,6 +23,7 @@ class ReportWriterAgent:
         experiment: ExperimentPlan,
         evidence: list[EvidenceItem],
         papers: list[Paper],
+        knowledge_cards: list[KnowledgeCard],
         data_profiles: list[DatasetProfile],
         baseline_result_card: BaselineResultCard | None,
     ) -> ResearchReport:
@@ -48,6 +50,7 @@ class ReportWriterAgent:
             results=_results_text(baseline_result_card, len(verified_papers), evidence_count),
             data_profiles=data_profiles,
             baseline_result_card=baseline_result_card,
+            knowledge_cards=[card for card in knowledge_cards if card.report_eligible],
             references=verified_papers,
             citation_audit_log=build_citation_audit(papers),
         )
