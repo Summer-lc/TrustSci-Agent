@@ -16,5 +16,6 @@ coverage/
 data/outputs/
 data/papers/
 data/parsed/
+data/workspace/
 .references/
 *.log

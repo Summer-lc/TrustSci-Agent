@@ -16,6 +16,7 @@ from app.schemas.planner import PerspectiveQuestion
 from app.schemas.report import ResearchReport
 from app.schemas.run import ResearchRun, ResearchRunCreate
 from app.storage.in_memory import run_store
+from app.storage.workspace import RunWorkspace
 from app.tools.llm_logger import read_llm_logs
 from app.tools.pdf_parser import parse_pdf_chunks
 from app.workflows.scientist_workflow import ScientistWorkflow
@@ -26,6 +27,7 @@ router = APIRouter(prefix="/api/runs", tags=["runs"])
 @router.post("", response_model=ResearchRun)
 async def create_run(payload: ResearchRunCreate) -> ResearchRun:
     run = ResearchRun(domain=payload.domain, question=payload.question, constraints=payload.constraints)
+    _write_workspace(run)
     return run_store.create(run)
 
 
@@ -118,6 +120,7 @@ async def ingest_pdf_evidence(run_id: str, payload: PdfEvidenceIngestRequest) ->
             matched_source=paper.matched_source if paper else None,
         )
     )
+    _write_workspace(run)
     return run_store.save(run)
 
 
@@ -170,6 +173,7 @@ async def list_artifacts(run_id: str) -> dict:
             for path in sorted(root.glob(f"*{run_id}*") if name != "result_cards" else root.glob("*"))
             if path.is_file()
         ]
+    artifacts["workspace"] = RunWorkspace(settings.data_dir).list_artifacts(run_id)
     return {"run_id": run_id, "artifacts": artifacts}
 
 
@@ -182,6 +186,7 @@ async def select_hypothesis(run_id: str, hypothesis_id: str) -> ResearchRun:
         found = found or hypothesis.selected
     if not found:
         raise HTTPException(status_code=404, detail="hypothesis not found")
+    _write_workspace(run)
     return run_store.save(run)
 
 
@@ -211,6 +216,12 @@ def _must_get_run(run_id: str) -> ResearchRun:
     if run is None:
         raise HTTPException(status_code=404, detail="run not found")
     return run
+
+
+def _write_workspace(run: ResearchRun) -> None:
+    workspace = RunWorkspace(get_settings().data_dir)
+    run.workspace_path = str(workspace.ensure(run))
+    run.workspace_artifacts = workspace.write_snapshot(run)
 
 
 def _safe_pdf_path(raw_path: str, data_dir: Path) -> Path:

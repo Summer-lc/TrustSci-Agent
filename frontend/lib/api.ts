@@ -65,6 +65,8 @@ export type ResearchRun = {
   status: string;
   current_stage: string;
   progress: number;
+  workspace_path?: string;
+  workspace_artifacts: Record<string, string>;
   plan: Record<string, unknown>;
   perspectives: Array<{
     perspective: string;

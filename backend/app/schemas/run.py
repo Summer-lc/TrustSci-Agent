@@ -39,6 +39,8 @@ class ResearchRun(BaseModel):
     status: RunStatus = RunStatus.created
     current_stage: str = "created"
     progress: float = 0
+    workspace_path: str | None = None
+    workspace_artifacts: dict[str, str] = Field(default_factory=dict)
     created_at: Any = Field(default_factory=utc_now)
     updated_at: Any = Field(default_factory=utc_now)
     plan: dict[str, Any] = Field(default_factory=dict)

@@ -228,6 +228,10 @@ workspace/run_xxx/
   to_human/
 ```
 
+- 已落地 v1：`data/workspace/{run_id}` 文件工作区。
+- 已落地 v1：`research-state.json`、`research-log.md`、`run.json`、papers/evidence/hypotheses/experiments/reports/to_human artifacts。
+- 后续增强：服务重启后从 workspace 恢复 run store、workspace bundle 导出、human gate 状态持久化。
+
 ### v2.4 Skill Registry
 
 - literature-search skill

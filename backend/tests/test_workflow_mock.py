@@ -66,6 +66,8 @@ async def test_workflow_completes_with_mocked_literature(monkeypatch) -> None:
     assert result.claim_audit is not None
     assert result.perspectives
     assert result.knowledge_cards
+    assert result.workspace_path
+    assert "research_log" in result.workspace_artifacts
     assert result.hypotheses[0].selected is True
     assert result.evidence[0].verified is True
 

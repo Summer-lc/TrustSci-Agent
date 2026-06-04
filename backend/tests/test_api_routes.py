@@ -42,6 +42,8 @@ def test_run_detail_endpoints_before_execution() -> None:
     assert created.status_code == 200
     assert created.json()["constraints"]["enable_semantic_scholar"] is True
     assert created.json()["constraints"]["enable_arxiv"] is False
+    assert created.json()["workspace_path"]
+    assert "research_state" in created.json()["workspace_artifacts"]
     run_id = created.json()["run_id"]
 
     assert client.get(f"/api/runs/{run_id}/papers").json() == []
@@ -53,6 +55,10 @@ def test_run_detail_endpoints_before_execution() -> None:
     assert client.get(f"/api/runs/{run_id}/hypotheses").json() == []
     assert client.get(f"/api/runs/{run_id}/llm-calls").json() == []
     assert client.get(f"/api/runs/{run_id}/report").status_code == 404
+
+    artifacts = client.get(f"/api/runs/{run_id}/artifacts")
+    assert artifacts.status_code == 200
+    assert any(path.endswith("research-state.json") for path in artifacts.json()["artifacts"]["workspace"])
 
 
 def test_pdf_evidence_ingest_endpoint_accepts_data_dir_pdf() -> None:

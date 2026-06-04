@@ -34,9 +34,11 @@
 - Claim Verifier v1：对 final report claims 进行 evidence ledger 反查并生成 claim audit。
 - Perspective Planner v1：输出领域专家、ML/数据专家、实验专家、审稿人和应用视角问题。
 - Literature Miner v1：从 evidence ledger 生成 knowledge cards。
+- Run Workspace v1：每个 run 生成 research-state、research-log、结构化 artifacts 与 human checkpoints。
 - 前端展示 citation status、verification method、integrity score。
 - 前端支持将 browser-worker 下载的 PDF 入账为 Evidence。
 - 前端展示 perspectives 与 knowledge cards。
+- 前端展示 research workspace 路径和 artifact 清单。
 - Markdown / JSON report export。
 
 ### 当前缺口
@@ -46,7 +48,7 @@
 - Planner 已有 STORM-style multi-perspective v1，但还没有多轮 simulated conversation。
 - Literature Miner 已有 knowledge cards v1，但还没有 Qwen 抽取和 report outline freeze。
 - Hypothesis Arena 仍是轻量 mock，没有多 reviewer 角色辩论。
-- 缺少持久化 run workspace。
+- Run Workspace 已有文件化 v1，但还没有从 workspace 自动恢复内存态。
 - 前端缺少 human gate：冻结引用、接受/拒绝证据、选择补搜方向。
 - 参赛 demo case 需要封版，高质量案例和截图材料还未冻结。
 
@@ -189,8 +191,12 @@ workspace/run_xxx/
   to_human/
 ```
 
+   - 已完成 v1：`data/workspace/{run_id}` 自动生成。
+   - 已完成 v1：`research-state.json`、`research-log.md`、`run.json`、papers/evidence/hypotheses/experiments/reports/to_human artifacts。
+
 2. 持久化存储。
-   - MVP 可先用 JSON files。
+   - 已完成 v1：MVP 先用 JSON files。
+   - 下一步：支持服务重启后从 workspace 恢复 run store。
    - 后续迁移 SQLite / PostgreSQL。
    - run artifacts 与 API run state 对齐。
 

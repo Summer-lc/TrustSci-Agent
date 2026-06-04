@@ -31,6 +31,7 @@ import { RunHistory } from "./RunHistory";
 import { RunTimeline } from "./RunTimeline";
 import { ScientificDataPanel } from "./ScientificDataPanel";
 import { StatusStrip } from "./StatusStrip";
+import { WorkspacePanel } from "./WorkspacePanel";
 
 const defaultQuestion =
   "请围绕固态电解质材料的离子电导率与稳定性提升，基于真实文献和开放数据库，生成可验证科学假设与实验计划。";
@@ -182,6 +183,7 @@ export function Workbench() {
 
         <div className="grid">
           <RunTimeline run={run} />
+          <WorkspacePanel run={run} />
           <PerspectivePlanPanel run={run} />
           <EvidenceBoard run={run} />
           <KnowledgeCardsPanel run={run} />

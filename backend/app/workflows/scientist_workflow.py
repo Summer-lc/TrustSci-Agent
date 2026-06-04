@@ -16,6 +16,7 @@ from app.schemas.hypothesis import Hypothesis
 from app.schemas.planner import PerspectiveQuestion
 from app.schemas.run import ResearchRun
 from app.storage.in_memory import run_store
+from app.storage.workspace import RunWorkspace
 from app.tools.arxiv_client import ArxivClient
 from app.tools.claim_verifier import ClaimVerifier
 from app.tools.citation_verifier import CitationVerifier
@@ -28,6 +29,7 @@ from app.tools.semantic_scholar_client import SemanticScholarClient
 class ScientistWorkflow:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+        self.workspace = RunWorkspace(settings.data_dir)
         self.llm = build_llm_client(settings)
         self.openalex = OpenAlexClient(settings)
         self.crossref = CrossrefClient(settings)
@@ -59,6 +61,7 @@ class ScientistWorkflow:
     async def run(self, run: ResearchRun) -> ResearchRun:
         run.status = RunStatus.running
         run.steps = []
+        self._write_workspace(run)
         run_store.save(run)
 
         try:
@@ -80,6 +83,7 @@ class ScientistWorkflow:
             run.current_stage = "failed"
             run.errors.append(str(exc))
         run.updated_at = utc_now()
+        self._write_workspace(run)
         return run_store.save(run)
 
     async def _step(self, run: ResearchRun, name: str, fn) -> None:
@@ -87,12 +91,14 @@ class ScientistWorkflow:
         run.steps.append(step)
         run.current_stage = name
         run.updated_at = utc_now()
+        self._write_workspace(run)
         run_store.save(run)
         await fn(run)
         step.status = "completed"
         step.finished_at = utc_now()
         run.progress = min(0.98, run.progress + 0.14)
         run.updated_at = utc_now()
+        self._write_workspace(run)
         run_store.save(run)
 
     async def _plan(self, run: ResearchRun) -> None:
@@ -193,6 +199,10 @@ class ScientistWorkflow:
             f"Audited {run.claim_audit.total} report claims; "
             f"support_score={run.claim_audit.support_score}."
         )
+
+    def _write_workspace(self, run: ResearchRun) -> None:
+        run.workspace_path = str(self.workspace.ensure(run))
+        run.workspace_artifacts = self.workspace.write_snapshot(run)
 
 
 def _selected_hypothesis(hypotheses: list[Hypothesis]) -> Hypothesis | None:
