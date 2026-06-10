@@ -18,6 +18,7 @@ import {
   PublicConfig,
   ResearchRun,
   runBaseline,
+  selectHypothesis,
   startRun,
   unfreezeEvidence
 } from "../../lib/api";
@@ -57,6 +58,7 @@ export function Workbench() {
   const [captureError, setCaptureError] = useState("");
   const [captureResult, setCaptureResult] = useState<BrowserCaptureResult | null>(null);
   const [evidenceBusy, setEvidenceBusy] = useState(false);
+  const [hypothesisBusy, setHypothesisBusy] = useState(false);
 
   useEffect(() => {
     void loadInitialData();
@@ -191,6 +193,21 @@ export function Workbench() {
     }
   }
 
+  async function handleSelectHypothesis(hypothesisId: string) {
+    if (!run) return;
+    setHypothesisBusy(true);
+    setError("");
+    try {
+      const next = await selectHypothesis(run.run_id, hypothesisId);
+      setRun(next);
+      await refreshRuns();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Hypothesis selection failed");
+    } finally {
+      setHypothesisBusy(false);
+    }
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -244,7 +261,7 @@ export function Workbench() {
           <KnowledgeCardsPanel run={run} />
           <CitationVerifier run={run} />
           <ScientificDataPanel run={run} profiles={profiles} baseline={baseline} />
-          <HypothesisArena run={run} />
+          <HypothesisArena run={run} busy={hypothesisBusy} onSelect={handleSelectHypothesis} />
           <ExperimentPlanPanel run={run} />
           <BrowserCapturePanel
             url={captureUrl}

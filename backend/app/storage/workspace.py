@@ -72,6 +72,8 @@ def _research_state(run: ResearchRun) -> dict[str, Any]:
             "frozen_evidence": len(run.frozen_evidence_ids),
             "knowledge_cards": len(run.knowledge_cards),
             "hypotheses": len(run.hypotheses),
+            "reviewer_comments": sum(len(item.reviewer_comments) for item in run.hypotheses),
+            "hypothesis_revisions": sum(len(item.revision_history) for item in run.hypotheses),
         },
         "human_gate": {
             "evidence_frozen": run.evidence_frozen,
@@ -107,8 +109,13 @@ def _research_log(run: ResearchRun) -> str:
             f"- Evidence frozen: {run.evidence_frozen} ({len(run.frozen_evidence_ids)} items)",
             f"- Knowledge cards: {len(run.knowledge_cards)}",
             f"- Hypotheses: {len(run.hypotheses)}",
+            f"- Reviewer comments: {sum(len(item.reviewer_comments) for item in run.hypotheses)}",
+            f"- Hypothesis revisions: {sum(len(item.revision_history) for item in run.hypotheses)}",
         ]
     )
+    selected = next((item for item in run.hypotheses if item.selected), None)
+    if selected:
+        lines.append(f"- Selected hypothesis: {selected.hypothesis_id} ({selected.selection_rationale or 'no rationale recorded'})")
     if run.citation_report:
         lines.append(f"- Citation integrity: {run.citation_report.integrity_score}")
     if run.claim_audit:
@@ -134,6 +141,9 @@ def _to_human(run: ResearchRun) -> str:
         actions.append("- Evidence set is not frozen yet.")
     if run.evidence_frozen:
         actions.append(f"- Frozen evidence set contains {len(run.frozen_evidence_ids)} items.")
+    selected = next((item for item in run.hypotheses if item.selected), None)
+    if selected and not selected.selection_rationale:
+        actions.append("- Selected hypothesis is missing a selection rationale.")
     return "\n".join(actions) + "\n"
 
 

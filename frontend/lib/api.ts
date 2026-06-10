@@ -174,9 +174,27 @@ export type ResearchRun = {
       self_consistency: number;
       verifiability: number;
       data_availability: number;
+      feasibility: number;
+      evidence_support: number;
+      reproducibility: number;
+      competition_fit: number;
       risk: string;
       revision_advice: string;
     };
+    reviewer_comments: Array<{
+      reviewer: string;
+      score: number;
+      stance: string;
+      comment: string;
+      required_action: string;
+    }>;
+    revision_history: Array<{
+      before: string;
+      after: string;
+      rationale: string;
+      changed_by: string;
+    }>;
+    selection_rationale: string;
   }>;
   experiment_plan?: {
     datasets: string[];
@@ -309,6 +327,12 @@ export async function unfreezeEvidence(runId: string) {
 
 export async function rebuildReport(runId: string) {
   return requestJson<ResearchRun>(`${API_BASE}/api/runs/${runId}/report/rebuild`, { method: "POST" });
+}
+
+export async function selectHypothesis(runId: string, hypothesisId: string) {
+  return requestJson<ResearchRun>(`${API_BASE}/api/runs/${runId}/hypotheses/${hypothesisId}/select`, {
+    method: "POST"
+  });
 }
 
 export function reportExportUrl(runId: string, format: "md" | "json" = "md") {

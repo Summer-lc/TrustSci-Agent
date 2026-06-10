@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import FileResponse
 
+from app.agents.experiment_designer_agent import ExperimentDesignerAgent
 from app.agents.report_writer_agent import ReportWriterAgent
 from app.config import get_settings
 from app.schemas.data import BaselineResultCard, DatasetProfile
@@ -230,12 +231,18 @@ async def list_artifacts(run_id: str) -> dict:
 @router.post("/{run_id}/hypotheses/{hypothesis_id}/select", response_model=ResearchRun)
 async def select_hypothesis(run_id: str, hypothesis_id: str) -> ResearchRun:
     run = _must_get_run(run_id)
-    found = False
+    selected: Hypothesis | None = None
     for hypothesis in run.hypotheses:
         hypothesis.selected = hypothesis.hypothesis_id == hypothesis_id
-        found = found or hypothesis.selected
-    if not found:
+        if hypothesis.selected:
+            hypothesis.selection_rationale = _selection_rationale(hypothesis)
+            selected = hypothesis
+        else:
+            hypothesis.selection_rationale = ""
+    if selected is None:
         raise HTTPException(status_code=404, detail="hypothesis not found")
+    run.experiment_plan = ExperimentDesignerAgent().run(selected, run.data_profiles)
+    _refresh_report_if_possible(run)
     _write_workspace(run)
     return run_store.save(run)
 
@@ -303,6 +310,19 @@ def _refresh_report_if_possible(run: ResearchRun, *, require_experiment: bool = 
 
 def _selected_hypothesis(run: ResearchRun) -> Hypothesis | None:
     return next((hypothesis for hypothesis in run.hypotheses if hypothesis.selected), run.hypotheses[0] if run.hypotheses else None)
+
+
+def _selection_rationale(hypothesis: Hypothesis) -> str:
+    if hypothesis.critic is None:
+        return "Selected by the user for downstream experiment design and report rebuild."
+    return (
+        "Selected by the user after reviewer debate; current scores are "
+        f"novelty={hypothesis.critic.novelty}, "
+        f"verifiability={hypothesis.critic.verifiability}, "
+        f"evidence_support={hypothesis.critic.evidence_support}, "
+        f"reproducibility={hypothesis.critic.reproducibility}, "
+        f"competition_fit={hypothesis.critic.competition_fit}."
+    )
 
 
 def _sync_frozen_markers(run: ResearchRun) -> None:

@@ -69,6 +69,9 @@ async def test_workflow_completes_with_mocked_literature(monkeypatch) -> None:
     assert result.workspace_path
     assert "research_log" in result.workspace_artifacts
     assert result.hypotheses[0].selected is True
+    assert result.hypotheses[0].selection_rationale
+    assert result.hypotheses[0].reviewer_comments
+    assert result.hypotheses[0].revision_history
     assert result.evidence[0].verified is True
 
 

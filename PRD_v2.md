@@ -735,7 +735,9 @@ Reference Design 的 10 个模块不是最终系统模块，而是参考来源�
 - Literature Miner v1 与 knowledge cards。
 - Materials Project / Matbench 风格 data profile。
 - 小型 baseline result card。
-- Hypothesis / Critic / Experiment Designer mock。
+- Hypothesis / Critic / Revision / Experiment Designer v1。
+- Multi-reviewer debate log、revision history、selection rationale。
+- 用户选择假设后自动重建 experiment plan、report 和 claim audit。
 - Human Gate v1：接受/拒绝 evidence、冻结/解冻 evidence set。
 - Report Writer mock，遵守 verified references 与 frozen evidence set。
 - Run Workspace v1。
@@ -747,8 +749,7 @@ Reference Design 的 10 个模块不是最终系统模块，而是参考来源�
 - Claim Verifier v1 仍是确定性词汇匹配，需升级为 Qwen / embedding 语义核验。
 - Citation Verifier 还需增加 author/year match、撤稿风险、原始 metadata snapshot 和 cache。
 - Literature Miner 已有 knowledge cards v1，但还没有 Qwen 抽取和完整 report outline freeze。
-- Hypothesis Arena 仍是轻量 mock，没有多 reviewer 角色辩论、revision history 和 novelty checker。
-- 用户选择假设后还没有完整触发实验计划和报告重建链路。
+- Hypothesis Arena 已有 deterministic reviewer debate / revision v1，但还没有 Qwen 驱动的多轮辩论和 novelty checker。
 - Run Workspace 已有文件化 v1，但还不能服务重启后自动恢复内存态。
 - 前端缺少独立 Literature Board、引用接受/拒绝、补搜方向、workspace bundle、PDF export。
 - Demo case、截图、视频脚本和 20 页技术方案尚未封版。

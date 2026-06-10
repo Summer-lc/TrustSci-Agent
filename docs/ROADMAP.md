@@ -31,14 +31,16 @@ Question
 - Evidence Ledger、PDF ingest、Browser Worker PDF 下载。
 - Claim Verifier、Literature Miner、knowledge cards。
 - Scientific data profile、小型 baseline result card。
-- Hypothesis / Critic / Experiment Designer / Report Writer mock。
+- Hypothesis / Critic / Revision / Experiment Designer / Report Writer v1。
+- Multi-reviewer debate log、revision history、selection rationale。
+- Hypothesis selection rebuilds experiment plan、report、claim audit。
 - Human Gate evidence accept/reject/freeze。
 - Run Workspace artifacts。
 - Markdown / JSON report export。
 
 当前缺口：
 
-- Hypothesis Arena 还缺多 reviewer debate、Revision Agent、novelty check。
+- Hypothesis Arena 还缺 Qwen 驱动的多轮 debate 和 novelty check。
 - Claim Verifier 还缺 Qwen / embedding 语义核验。
 - Citation Verifier 还缺 author/year match、metadata snapshot、cache、撤稿风险。
 - 前端还缺独立 Literature Board、Claim Audit Panel、citation approve/reject、PDF export。
@@ -70,6 +72,7 @@ Question
 - Debate log。
 - Hypothesis selection rationale。
 - 选择假设后重建 experiment plan 和 report。
+- 状态：deterministic v1 已完成；下一步升级 Qwen debate / novelty checker。
 
 ### Sprint C2: Evidence / Claim Audit UX
 

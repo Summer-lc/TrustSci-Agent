@@ -75,7 +75,7 @@ Question
 - Citation Verifier 还需增强 author/year match、撤稿风险检查、原始 metadata snapshot、rate-limit fallback 和 cache。
 - Planner 已有 STORM-style multi-perspective v1，但还没有多轮 simulated conversation 和按 perspective 的 query expansion。
 - Literature Miner 已有 knowledge cards v1，但还没有 Qwen 抽取和完整 report outline freeze。
-- Hypothesis Arena 仍是轻量 mock，没有多 reviewer 角色辩论、revision history、novelty checker。
+- Hypothesis Arena 已有 deterministic reviewer debate / revision v1，但还没有 Qwen 驱动的多轮辩论和 novelty checker。
 - 用户选择假设后还没有完整触发实验计划和报告重建链路。
 - Run Workspace 已有文件化 v1，但还没有从 workspace 自动恢复内存态，也没有 workspace bundle。
 - Human Gate 已有 evidence freeze v1；仍缺 citation approve/reject、补搜方向选择、report outline freeze。
@@ -308,29 +308,23 @@ Question
 已完成：
 
 - Critic Agent v1。
+- Revision Agent v1。
+- Multi-reviewer critic schema v1。
+- Debate Log v1：reviewer comments、revision before / after、selection rationale。
 - 用户选择假设接口。
+- 用户选择假设后触发 experiment/report/claim audit rebuild。
 - Human Gate v1：接受/拒绝 evidence。
 - Human Gate v1：冻结/解冻 evidence set。
 - Report Writer / Claim Verifier 遵守 frozen evidence。
 
 下一步：
 
-1. Revision Agent。
-2. Multi-reviewer Critic：
-   - Literature Reviewer。
-   - Domain Scientist。
-   - ML/Experiment Reviewer。
-   - Skeptical Reviewer。
-3. Debate Log：
-   - reviewer comments。
-   - revision before / after。
-   - selection rationale。
-4. Novelty Check v1：
+1. Qwen 驱动的多轮 reviewer debate。
+2. Novelty Check v1：
    - 用 verified literature 做 similar work search。
    - 标记 overlap risk。
    - 不做夸张 novelty claim。
-5. 用户选择假设后触发 experiment/report rebuild。
-6. 引用接受/拒绝和 citation set freeze。
+3. 引用接受/拒绝和 citation set freeze。
 
 验收标准：
 
@@ -517,12 +511,13 @@ Question
 
 交付：
 
-- Revision Agent。
-- Multi-reviewer critic schema。
-- Debate log。
-- Hypothesis selection rationale。
-- 选择假设后重建 experiment plan 和 report。
-- 前端展示 revision / debate。
+- 已完成 v1：Revision Agent。
+- 已完成 v1：Multi-reviewer critic schema。
+- 已完成 v1：Debate log。
+- 已完成 v1：Hypothesis selection rationale。
+- 已完成 v1：选择假设后重建 experiment plan、report 和 claim audit。
+- 已完成 v1：前端展示 revision / debate。
+- 下一步：Qwen 驱动多轮 debate 与 novelty checker。
 
 ### Sprint C2：Evidence / Claim Audit UX
 

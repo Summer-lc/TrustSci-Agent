@@ -7,6 +7,7 @@ from app.agents.hypothesis_agent import HypothesisAgent
 from app.agents.literature_miner_agent import LiteratureMinerAgent
 from app.agents.planner_agent import PlannerAgent
 from app.agents.report_writer_agent import ReportWriterAgent
+from app.agents.revision_agent import RevisionAgent
 from app.agents.scientific_data_agent import ScientificDataAgent
 from app.config import Settings
 from app.evidence.ledger import evidence_from_papers
@@ -55,6 +56,7 @@ class ScientistWorkflow:
         self.gap_finder = GapFinderAgent()
         self.hypothesis_agent = HypothesisAgent()
         self.critic = CriticAgent()
+        self.revision_agent = RevisionAgent()
         self.scientific_data_agent = ScientificDataAgent(settings)
         self.experiment_designer = ExperimentDesignerAgent()
         self.report_writer = ReportWriterAgent()
@@ -156,10 +158,16 @@ class ScientistWorkflow:
 
     async def _generate_and_critique(self, run: ResearchRun) -> None:
         gaps = self.gap_finder.run(run.evidence)
-        run.hypotheses = self.critic.run(self.hypothesis_agent.run(gaps))
+        run.hypotheses = self.revision_agent.run(self.critic.run(self.hypothesis_agent.run(gaps)))
         if run.hypotheses:
             run.hypotheses[0].selected = True
-        run.steps[-1].summary = f"Generated and reviewed {len(run.hypotheses)} hypotheses."
+            run.hypotheses[0].selection_rationale = _selection_rationale(run.hypotheses[0])
+        reviewer_comments = sum(len(hypothesis.reviewer_comments) for hypothesis in run.hypotheses)
+        revisions = sum(len(hypothesis.revision_history) for hypothesis in run.hypotheses)
+        run.steps[-1].summary = (
+            f"Generated {len(run.hypotheses)} hypotheses, "
+            f"{reviewer_comments} reviewer comments, and {revisions} revisions."
+        )
 
     async def _design_experiment(self, run: ResearchRun) -> None:
         run.experiment_plan = self.experiment_designer.run(_selected_hypothesis(run.hypotheses), run.data_profiles)
@@ -211,6 +219,18 @@ class ScientistWorkflow:
 
 def _selected_hypothesis(hypotheses: list[Hypothesis]) -> Hypothesis | None:
     return next((hypothesis for hypothesis in hypotheses if hypothesis.selected), hypotheses[0] if hypotheses else None)
+
+
+def _selection_rationale(hypothesis: Hypothesis) -> str:
+    if hypothesis.critic is None:
+        return "Selected as the default candidate for downstream experiment design."
+    return (
+        "Selected because it has the strongest MVP balance of "
+        f"verifiability={hypothesis.critic.verifiability}, "
+        f"data_availability={hypothesis.critic.data_availability}, "
+        f"evidence_support={hypothesis.critic.evidence_support}, and "
+        f"competition_fit={hypothesis.critic.competition_fit}."
+    )
 
 
 def _write_markdown_report(run: ResearchRun, data_dir: Path) -> None:

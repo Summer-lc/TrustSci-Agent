@@ -6,6 +6,7 @@ from pypdf import PdfWriter
 from app.main import app
 from app.schemas.evidence import EvidenceItem
 from app.schemas.experiment import ExperimentPlan
+from app.schemas.hypothesis import CriticReview, Hypothesis
 from app.schemas.paper import Paper
 from app.schemas.run import ResearchConstraints, ResearchRun
 from app.storage.in_memory import run_store
@@ -172,3 +173,54 @@ def test_evidence_decision_and_freeze_restrict_report_set() -> None:
     assert body["frozen_paper_ids"] == ["p_keep"]
     assert [paper["paper_id"] for paper in body["report"]["references"]] == ["p_keep"]
     assert body["claim_audit"]["total"] > 0
+
+
+def test_select_hypothesis_rebuilds_experiment_and_report() -> None:
+    run = ResearchRun(
+        domain="energy_materials",
+        question="Pick a hypothesis for final report.",
+        constraints=ResearchConstraints(max_papers=1),
+    )
+    run.hypotheses = [
+        Hypothesis(
+            hypothesis_id="H1",
+            statement="First candidate.",
+            rationale="Initial candidate.",
+            novelty_claim="Novel process.",
+            verification_path="Run a baseline.",
+            selected=True,
+            critic=_critic(),
+        ),
+        Hypothesis(
+            hypothesis_id="H2",
+            statement="Second candidate with better evidence support.",
+            rationale="Better candidate.",
+            novelty_claim="Better bounded process.",
+            verification_path="Run a better baseline.",
+            critic=_critic(evidence_support=9),
+        ),
+    ]
+    run_store.create(run)
+
+    response = client.post(f"/api/runs/{run.run_id}/hypotheses/H2/select")
+
+    assert response.status_code == 200
+    body = response.json()
+    selected = [item for item in body["hypotheses"] if item["selected"]]
+    assert [item["hypothesis_id"] for item in selected] == ["H2"]
+    assert selected[0]["selection_rationale"]
+    assert "Second candidate" in body["experiment_plan"]["expected_results"]
+    assert body["report"]["paper_title"].startswith("Evidence-Grounded Research Plan: Second candidate")
+    assert body["claim_audit"]["total"] > 0
+
+
+def _critic(evidence_support: int = 7) -> CriticReview:
+    return CriticReview(
+        novelty=7,
+        self_consistency=8,
+        verifiability=8,
+        data_availability=8,
+        evidence_support=evidence_support,
+        risk="Needs bounded claims.",
+        revision_advice="Keep it testable.",
+    )
