@@ -140,6 +140,52 @@ def test_report_writer_respects_frozen_evidence_set() -> None:
     assert "1 verified evidence items" in report.problem_statement
 
 
+def test_report_writer_respects_frozen_citation_set() -> None:
+    run = ResearchRun(
+        domain="energy_materials",
+        question="Use only frozen citations.",
+        constraints=ResearchConstraints(max_papers=2),
+        citation_frozen=True,
+        frozen_paper_ids=["p_verified"],
+    )
+    frozen_paper = Paper(
+        paper_id="p_verified",
+        title="Frozen verified paper",
+        verification_status="verified",
+        report_eligible=True,
+    )
+    extra_paper = Paper(
+        paper_id="p_extra",
+        title="Extra verified paper",
+        verification_status="verified",
+        report_eligible=True,
+    )
+    report = ReportWriterAgent().run(
+        run,
+        _hypothesis(),
+        _experiment(),
+        [
+            _evidence(),
+            EvidenceItem(
+                evidence_id="e2",
+                paper_id="p_extra",
+                claim="Extra citation evidence should stay out.",
+                source_title="Extra verified paper",
+                quote_or_summary="Extra verified summary.",
+                verified=True,
+                eligible_for_report=True,
+            ),
+        ],
+        [frozen_paper, extra_paper],
+        [],
+        [_data_profile()],
+        None,
+    )
+
+    assert [paper.paper_id for paper in report.references] == ["p_verified"]
+    assert "1 verified evidence items" in report.problem_statement
+
+
 def _hypothesis() -> Hypothesis:
     return Hypothesis(
         hypothesis_id="h1",

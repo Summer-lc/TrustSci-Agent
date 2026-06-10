@@ -241,6 +241,7 @@ a {
   min-height: 44px;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   border: 1px solid var(--line);
   border-radius: 8px;

@@ -51,6 +51,7 @@ class ResearchRun(BaseModel):
     paper_chunks: list[PaperChunk] = Field(default_factory=list)
     evidence: list[EvidenceItem] = Field(default_factory=list)
     evidence_frozen: bool = False
+    citation_frozen: bool = False
     frozen_evidence_ids: list[str] = Field(default_factory=list)
     frozen_paper_ids: list[str] = Field(default_factory=list)
     knowledge_cards: list[KnowledgeCard] = Field(default_factory=list)

@@ -175,6 +175,79 @@ def test_evidence_decision_and_freeze_restrict_report_set() -> None:
     assert body["claim_audit"]["total"] > 0
 
 
+def test_paper_decision_and_freeze_restrict_citation_set() -> None:
+    run = ResearchRun(
+        domain="energy_materials",
+        question="Freeze citations before final report.",
+        constraints=ResearchConstraints(max_papers=2),
+    )
+    run.papers = [
+        Paper(
+            paper_id="p_keep",
+            title="Kept citation",
+            verification_status="verified",
+            report_eligible=True,
+        ),
+        Paper(
+            paper_id="p_reject",
+            title="Rejected citation",
+            verification_status="verified",
+            report_eligible=True,
+        ),
+    ]
+    run.evidence = [
+        EvidenceItem(
+            evidence_id="ev_keep",
+            paper_id="p_keep",
+            claim="Kept citation evidence supports the report.",
+            source_title="Kept citation",
+            quote_or_summary="Traceable support.",
+            verified=True,
+            eligible_for_report=True,
+        ),
+        EvidenceItem(
+            evidence_id="ev_reject",
+            paper_id="p_reject",
+            claim="Rejected citation evidence should not support the report.",
+            source_title="Rejected citation",
+            quote_or_summary="Rejected support.",
+            verified=True,
+            eligible_for_report=True,
+        ),
+    ]
+    run.experiment_plan = ExperimentPlan(
+        datasets=["fixture"],
+        source="local",
+        target="target",
+        baselines=["mean"],
+        metrics=["MAE"],
+        experiment_steps=["freeze citations", "write report"],
+        expected_results="bounded",
+        failure_modes=["weak citation"],
+    )
+    run_store.create(run)
+
+    rejected = client.post(
+        f"/api/runs/{run.run_id}/papers/p_reject/decision",
+        json={"decision": "rejected", "note": "citation is out of scope"},
+    )
+    assert rejected.status_code == 200
+    rejected_paper = next(item for item in rejected.json()["papers"] if item["paper_id"] == "p_reject")
+    rejected_evidence = next(item for item in rejected.json()["evidence"] if item["evidence_id"] == "ev_reject")
+    assert rejected_paper["human_decision"] == "rejected"
+    assert rejected_paper["report_eligible"] is False
+    assert rejected_evidence["eligible_for_report"] is False
+
+    frozen = client.post(f"/api/runs/{run.run_id}/papers/freeze")
+
+    assert frozen.status_code == 200
+    body = frozen.json()
+    assert body["citation_frozen"] is True
+    assert body["frozen_paper_ids"] == ["p_keep"]
+    assert [paper["paper_id"] for paper in body["report"]["references"]] == ["p_keep"]
+    assert body["papers"][0]["frozen"] is True
+
+
 def test_select_hypothesis_rebuilds_experiment_and_report() -> None:
     run = ResearchRun(
         domain="energy_materials",

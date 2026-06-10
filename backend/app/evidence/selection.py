@@ -11,9 +11,16 @@ def reportable_evidence(run: ResearchRun, evidence: list[EvidenceItem] | None = 
         if item.verified and item.eligible_for_report and item.human_decision != "rejected"
     ]
     if not run.evidence_frozen:
+        if run.citation_frozen:
+            frozen_paper_ids = set(run.frozen_paper_ids)
+            return [item for item in items if item.paper_id in frozen_paper_ids]
         return items
     frozen_ids = set(run.frozen_evidence_ids)
-    return [item for item in items if item.evidence_id in frozen_ids]
+    items = [item for item in items if item.evidence_id in frozen_ids]
+    if run.citation_frozen:
+        frozen_paper_ids = set(run.frozen_paper_ids)
+        return [item for item in items if item.paper_id in frozen_paper_ids]
+    return items
 
 
 def reportable_papers(
@@ -27,9 +34,9 @@ def reportable_papers(
     verified = [
         paper
         for paper in (papers if papers is not None else run.papers)
-        if paper.verification_status == "verified" and paper.report_eligible
+        if paper.verification_status == "verified" and paper.report_eligible and paper.human_decision != "rejected"
     ]
-    if run.evidence_frozen:
+    if run.evidence_frozen or run.citation_frozen:
         return [paper for paper in verified if paper.paper_id in frozen_or_evidence_paper_ids]
     return verified
 

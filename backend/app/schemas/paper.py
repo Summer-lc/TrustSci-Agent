@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -28,3 +30,11 @@ class Paper(BaseModel):
     verification_confidence: float | None = None
     matched_source: str | None = None
     report_eligible: bool = False
+    human_decision: Literal["pending", "accepted", "rejected"] = "pending"
+    human_note: str = ""
+    frozen: bool = False
+
+
+class PaperDecisionRequest(BaseModel):
+    decision: Literal["pending", "accepted", "rejected"]
+    note: str = ""

@@ -8,8 +8,10 @@ import {
   captureBrowserPage,
   createRun,
   DatasetProfile,
+  decidePaper,
   decideEvidence,
   freezeEvidence,
+  freezePapers,
   getDataProfiles,
   getPublicConfig,
   getRun,
@@ -20,7 +22,8 @@ import {
   runBaseline,
   selectHypothesis,
   startRun,
-  unfreezeEvidence
+  unfreezeEvidence,
+  unfreezePapers
 } from "../../lib/api";
 import { BrowserCapturePanel } from "./BrowserCapturePanel";
 import { ClaimAuditPanel } from "./ClaimAuditPanel";
@@ -59,6 +62,7 @@ export function Workbench() {
   const [captureError, setCaptureError] = useState("");
   const [captureResult, setCaptureResult] = useState<BrowserCaptureResult | null>(null);
   const [evidenceBusy, setEvidenceBusy] = useState(false);
+  const [citationBusy, setCitationBusy] = useState(false);
   const [hypothesisBusy, setHypothesisBusy] = useState(false);
 
   useEffect(() => {
@@ -194,6 +198,51 @@ export function Workbench() {
     }
   }
 
+  async function handleCitationDecision(paperId: string, decision: "pending" | "accepted" | "rejected") {
+    if (!run) return;
+    setCitationBusy(true);
+    setError("");
+    try {
+      const next = await decidePaper(run.run_id, paperId, decision);
+      setRun(next);
+      await refreshRuns();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Citation decision failed");
+    } finally {
+      setCitationBusy(false);
+    }
+  }
+
+  async function handleFreezeCitations() {
+    if (!run) return;
+    setCitationBusy(true);
+    setError("");
+    try {
+      const next = await freezePapers(run.run_id);
+      setRun(next);
+      await refreshRuns();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Citation freeze failed");
+    } finally {
+      setCitationBusy(false);
+    }
+  }
+
+  async function handleUnfreezeCitations() {
+    if (!run) return;
+    setCitationBusy(true);
+    setError("");
+    try {
+      const next = await unfreezePapers(run.run_id);
+      setRun(next);
+      await refreshRuns();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Citation unfreeze failed");
+    } finally {
+      setCitationBusy(false);
+    }
+  }
+
   async function handleSelectHypothesis(hypothesisId: string) {
     if (!run) return;
     setHypothesisBusy(true);
@@ -261,7 +310,13 @@ export function Workbench() {
           />
           <KnowledgeCardsPanel run={run} />
           <ClaimAuditPanel run={run} />
-          <CitationVerifier run={run} />
+          <CitationVerifier
+            run={run}
+            busy={citationBusy}
+            onDecision={handleCitationDecision}
+            onFreeze={handleFreezeCitations}
+            onUnfreeze={handleUnfreezeCitations}
+          />
           <ScientificDataPanel run={run} profiles={profiles} baseline={baseline} />
           <HypothesisArena run={run} busy={hypothesisBusy} onSelect={handleSelectHypothesis} />
           <ExperimentPlanPanel run={run} />

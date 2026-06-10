@@ -734,6 +734,7 @@ Reference Design 的 10 个模块不是最终系统模块，而是参考来源�
 - Claim Verifier v1 与 Claim Audit Report。
 - 前端 Claim Audit Panel 与 claim support/weak/unsupported 明细展示。
 - Evidence Board 支持 all/report/frozen/accepted/rejected/unsupported 筛选。
+- CitationVerifier 面板支持接受/拒绝 citation、冻结/解冻 citation set。
 - Literature Miner v1 与 knowledge cards。
 - Materials Project / Matbench 风格 data profile。
 - 小型 baseline result card。
@@ -753,7 +754,7 @@ Reference Design 的 10 个模块不是最终系统模块，而是参考来源�
 - Literature Miner 已有 knowledge cards v1，但还没有 Qwen 抽取和完整 report outline freeze。
 - Hypothesis Arena 已有 deterministic reviewer debate / revision v1，但还没有 Qwen 驱动的多轮辩论和 novelty checker。
 - Run Workspace 已有文件化 v1，但还不能服务重启后自动恢复内存态。
-- 前端缺少独立 Literature Board、引用接受/拒绝、补搜方向、workspace bundle、PDF export。
+- 前端缺少独立 Literature Board、补搜方向、workspace bundle、PDF export。
 - Demo case、截图、视频脚本和 20 页技术方案尚未封版。
 
 ## 16. 暂不纳入 MVP 的能力

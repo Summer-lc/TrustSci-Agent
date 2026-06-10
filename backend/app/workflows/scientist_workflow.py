@@ -146,6 +146,7 @@ class ScientistWorkflow:
     async def _build_evidence(self, run: ResearchRun) -> None:
         run.evidence = evidence_from_papers(run.papers, run.domain)
         run.evidence_frozen = False
+        run.citation_frozen = False
         run.frozen_evidence_ids = []
         run.frozen_paper_ids = []
         verified = len([item for item in run.evidence if item.verified])

@@ -36,6 +36,7 @@ Question
 - Hypothesis selection rebuilds experiment plan、report、claim audit。
 - Claim Audit Panel。
 - Evidence Board filters。
+- Citation approve/reject/freeze。
 - Human Gate evidence accept/reject/freeze。
 - Run Workspace artifacts。
 - Markdown / JSON report export。
@@ -45,7 +46,7 @@ Question
 - Hypothesis Arena 还缺 Qwen 驱动的多轮 debate 和 novelty check。
 - Claim Verifier 还缺 Qwen / embedding 语义核验。
 - Citation Verifier 还缺 author/year match、metadata snapshot、cache、撤稿风险。
-- 前端还缺独立 Literature Board、citation approve/reject、PDF export。
+- 前端还缺独立 Literature Board、PDF export。
 - Demo case、技术方案 PDF、视频脚本、截图材料还未封版。
 
 ## Phase Summary
@@ -80,8 +81,8 @@ Question
 
 - 已完成 v1：独立 Claim Audit Panel。
 - 已完成 v1：Evidence Board 筛选。
-- Citation approve/reject。
-- Citation set freeze。
+- 已完成 v1：Citation approve/reject。
+- 已完成 v1：Citation set freeze。
 - Unsupported claim 降级策略。
 
 ### Sprint D: Demo Freeze

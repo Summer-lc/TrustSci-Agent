@@ -14,7 +14,7 @@ from app.schemas.common import RunStatus
 from app.schemas.evidence import EvidenceDecisionRequest, EvidenceItem, PaperChunk, PdfEvidenceIngestRequest
 from app.schemas.hypothesis import Hypothesis
 from app.schemas.knowledge import KnowledgeCard
-from app.schemas.paper import Paper
+from app.schemas.paper import Paper, PaperDecisionRequest
 from app.schemas.planner import PerspectiveQuestion
 from app.schemas.report import ResearchReport
 from app.schemas.run import ResearchRun, ResearchRunCreate
@@ -73,6 +73,55 @@ async def run_sync(run_id: str) -> ResearchRun:
 @router.get("/{run_id}/papers", response_model=list[Paper])
 async def get_papers(run_id: str) -> list[Paper]:
     return _must_get_run(run_id).papers
+
+
+@router.post("/{run_id}/papers/{paper_id}/decision", response_model=ResearchRun)
+async def decide_paper(run_id: str, paper_id: str, payload: PaperDecisionRequest) -> ResearchRun:
+    run = _must_get_run(run_id)
+    paper = next((entry for entry in run.papers if entry.paper_id == paper_id), None)
+    if paper is None:
+        raise HTTPException(status_code=404, detail="paper not found")
+    paper.human_decision = payload.decision
+    paper.human_note = payload.note
+    paper.report_eligible = paper.verification_status == "verified" and payload.decision != "rejected"
+    _sync_evidence_for_paper(run, paper)
+    if run.citation_frozen and payload.decision == "rejected":
+        run.frozen_paper_ids = [item_id for item_id in run.frozen_paper_ids if item_id != paper_id]
+    _sync_frozen_markers(run)
+    _refresh_report_if_possible(run)
+    _write_workspace(run)
+    return run_store.save(run)
+
+
+@router.post("/{run_id}/papers/freeze", response_model=ResearchRun)
+async def freeze_papers(run_id: str) -> ResearchRun:
+    run = _must_get_run(run_id)
+    run.citation_frozen = True
+    run.frozen_paper_ids = [
+        paper.paper_id
+        for paper in run.papers
+        if paper.verification_status == "verified"
+        and paper.report_eligible
+        and paper.human_decision != "rejected"
+    ]
+    _sync_frozen_markers(run)
+    _refresh_report_if_possible(run)
+    _write_workspace(run)
+    return run_store.save(run)
+
+
+@router.post("/{run_id}/papers/unfreeze", response_model=ResearchRun)
+async def unfreeze_papers(run_id: str) -> ResearchRun:
+    run = _must_get_run(run_id)
+    run.citation_frozen = False
+    if not run.evidence_frozen:
+        run.frozen_paper_ids = []
+    else:
+        run.frozen_paper_ids = _paper_ids_for_frozen_evidence(run)
+    _sync_frozen_markers(run)
+    _refresh_report_if_possible(run)
+    _write_workspace(run)
+    return run_store.save(run)
 
 
 @router.get("/{run_id}/evidence", response_model=list[EvidenceItem])
@@ -329,6 +378,19 @@ def _sync_frozen_markers(run: ResearchRun) -> None:
     frozen_ids = set(run.frozen_evidence_ids) if run.evidence_frozen else set()
     for item in run.evidence:
         item.frozen = item.evidence_id in frozen_ids
+    frozen_paper_ids = set(run.frozen_paper_ids) if (run.evidence_frozen or run.citation_frozen) else set()
+    for paper in run.papers:
+        paper.frozen = paper.paper_id in frozen_paper_ids
+
+
+def _sync_evidence_for_paper(run: ResearchRun, paper: Paper) -> None:
+    for item in run.evidence:
+        if item.paper_id != paper.paper_id:
+            continue
+        if paper.human_decision == "rejected":
+            item.eligible_for_report = False
+            continue
+        item.eligible_for_report = item.verified and item.human_decision != "rejected"
 
 
 def _paper_ids_for_frozen_evidence(run: ResearchRun) -> list[str]:

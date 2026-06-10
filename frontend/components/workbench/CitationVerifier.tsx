@@ -1,11 +1,38 @@
-import { ShieldCheck } from "lucide-react";
+import { Check, Lock, RotateCcw, ShieldCheck, X } from "lucide-react";
 import { ResearchRun } from "../../lib/api";
 
-export function CitationVerifier({ run }: { run: ResearchRun | null }) {
+type PaperDecision = "pending" | "accepted" | "rejected";
+
+type Props = {
+  run: ResearchRun | null;
+  busy?: boolean;
+  onDecision: (paperId: string, decision: PaperDecision) => void;
+  onFreeze: () => void;
+  onUnfreeze: () => void;
+};
+
+export function CitationVerifier({ run, busy = false, onDecision, onFreeze, onUnfreeze }: Props) {
   const report = run?.citation_report;
+  const frozenCount = run?.frozen_paper_ids.length || 0;
   return (
     <section className="panel span-6">
-      <h2><ShieldCheck size={16} /> Citation Verifier</h2>
+      <div className="panel-heading">
+        <h2><ShieldCheck size={16} /> Citation Verifier</h2>
+        <div className="actions">
+          <span className={`badge ${run?.citation_frozen ? "good" : "warn"}`}>
+            {run?.citation_frozen ? `frozen ${frozenCount}` : "open citations"}
+          </span>
+          {run?.citation_frozen ? (
+            <button className="secondary" onClick={onUnfreeze} disabled={busy || !run}>
+              <RotateCcw size={14} /> 解冻
+            </button>
+          ) : (
+            <button className="secondary" onClick={onFreeze} disabled={busy || !run || !run.papers.length}>
+              <Lock size={14} /> 冻结
+            </button>
+          )}
+        </div>
+      </div>
       {report && (
         <div className="item compact">
           <div className="item-meta">
@@ -24,9 +51,31 @@ export function CitationVerifier({ run }: { run: ResearchRun | null }) {
               {paper.verification_method || "pending"} · confidence {paper.verification_confidence ?? "n/a"}
               {paper.matched_source ? ` · ${paper.matched_source}` : ""}
             </div>
-            <span className={`badge ${paper.verification_status === "verified" ? "good" : "warn"}`}>
-              {paper.verification_status}{paper.report_eligible ? " · report" : " · audit"}
-            </span>
+            <div className="item-actions">
+              <span className={`badge ${paper.verification_status === "verified" ? "good" : "warn"}`}>
+                {paper.frozen ? "frozen" : paper.report_eligible ? "report" : "audit"}
+              </span>
+              <span className={`badge ${paper.human_decision === "rejected" ? "warn" : paper.human_decision === "accepted" ? "good" : ""}`}>
+                {paper.human_decision}
+              </span>
+              <span className="badge">{paper.verification_status}</span>
+              <button
+                className="icon-button"
+                title="Approve citation"
+                onClick={() => onDecision(paper.paper_id, "accepted")}
+                disabled={busy || paper.human_decision === "accepted" || paper.verification_status !== "verified"}
+              >
+                <Check size={14} />
+              </button>
+              <button
+                className="icon-button danger"
+                title="Reject citation"
+                onClick={() => onDecision(paper.paper_id, "rejected")}
+                disabled={busy || paper.human_decision === "rejected"}
+              >
+                <X size={14} />
+              </button>
+            </div>
           </article>
         ))}
         {!run?.papers.length && <p className="muted">暂无候选论文</p>}

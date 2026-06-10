@@ -27,6 +27,16 @@ export function StatusStrip({ config, run }: { config: PublicConfig | null; run:
       <div className="status-cell">
         <Activity size={16} />
         <span>{run ? `${run.status} / ${run.current_stage}` : "idle"}</span>
+        {run && (
+          <>
+            <span className={`badge ${run.citation_frozen ? "good" : "warn"}`}>
+              citations {run.citation_frozen ? "frozen" : "open"}
+            </span>
+            <span className={`badge ${run.evidence_frozen ? "good" : "warn"}`}>
+              evidence {run.evidence_frozen ? "frozen" : "open"}
+            </span>
+          </>
+        )}
       </div>
     </div>
   );
