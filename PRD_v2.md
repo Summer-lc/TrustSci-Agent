@@ -732,6 +732,8 @@ Reference Design 的 10 个模块不是最终系统模块，而是参考来源�
 - PDF chunk parser 与 run 级 PDF evidence ingest。
 - Browser worker 截图 / HTML / PDF 下载。
 - Claim Verifier v1 与 Claim Audit Report。
+- 前端 Claim Audit Panel 与 claim support/weak/unsupported 明细展示。
+- Evidence Board 支持 all/report/frozen/accepted/rejected/unsupported 筛选。
 - Literature Miner v1 与 knowledge cards。
 - Materials Project / Matbench 风格 data profile。
 - 小型 baseline result card。

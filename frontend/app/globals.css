@@ -298,6 +298,28 @@ a {
   flex-wrap: wrap;
 }
 
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.segmented button {
+  min-height: 30px;
+  border-radius: 8px;
+  background: #eef2f7;
+  color: #344054;
+  padding: 0 9px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.segmented button.active {
+  background: #17202a;
+  color: #fff;
+}
+
 .span-4 {
   grid-column: span 4;
 }
@@ -404,6 +426,13 @@ a {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 10px;
+}
+
+.metric-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .dense {

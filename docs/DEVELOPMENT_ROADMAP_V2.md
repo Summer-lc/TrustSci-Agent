@@ -64,6 +64,8 @@ Question
 - 前端支持将 browser-worker 下载的 PDF 入账为 Evidence。
 - 前端展示 perspectives 与 knowledge cards。
 - 前端展示 research workspace 路径和 artifact 清单。
+- 前端 Claim Audit Panel 展示 claim support、weak、unsupported 明细。
+- Evidence Board 支持 all / report / frozen / accepted / rejected / unsupported 筛选。
 - Human Gate v1：Evidence Board 支持接受/拒绝 evidence、冻结/解冻 evidence set。
 - Report Writer / Claim Verifier 已遵守 frozen evidence set；References 由 frozen paper ids 约束。
 - Markdown / JSON report export。
@@ -76,10 +78,9 @@ Question
 - Planner 已有 STORM-style multi-perspective v1，但还没有多轮 simulated conversation 和按 perspective 的 query expansion。
 - Literature Miner 已有 knowledge cards v1，但还没有 Qwen 抽取和完整 report outline freeze。
 - Hypothesis Arena 已有 deterministic reviewer debate / revision v1，但还没有 Qwen 驱动的多轮辩论和 novelty checker。
-- 用户选择假设后还没有完整触发实验计划和报告重建链路。
 - Run Workspace 已有文件化 v1，但还没有从 workspace 自动恢复内存态，也没有 workspace bundle。
 - Human Gate 已有 evidence freeze v1；仍缺 citation approve/reject、补搜方向选择、report outline freeze。
-- 前端缺少独立 Literature Board、claim/evidence audit 细节筛选、PDF export。
+- 前端缺少独立 Literature Board、citation approve/reject、PDF export。
 - 参赛 demo case、截图材料、技术方案 PDF、视频脚本尚未封版。
 
 ## 3. 阶段总览
@@ -525,8 +526,8 @@ Question
 
 交付：
 
-- 独立 Claim Audit Panel。
-- Evidence Board verified / rejected / frozen 筛选。
+- 已完成 v1：独立 Claim Audit Panel。
+- 已完成 v1：Evidence Board verified / rejected / frozen / unsupported 筛选。
 - Citation approve/reject。
 - Citation set freeze。
 - Unsupported claim 降级策略。

@@ -23,6 +23,7 @@ import {
   unfreezeEvidence
 } from "../../lib/api";
 import { BrowserCapturePanel } from "./BrowserCapturePanel";
+import { ClaimAuditPanel } from "./ClaimAuditPanel";
 import { CitationVerifier } from "./CitationVerifier";
 import { EvidenceBoard } from "./EvidenceBoard";
 import { ExperimentPlanPanel } from "./ExperimentPlanPanel";
@@ -259,6 +260,7 @@ export function Workbench() {
             onUnfreeze={handleUnfreezeEvidence}
           />
           <KnowledgeCardsPanel run={run} />
+          <ClaimAuditPanel run={run} />
           <CitationVerifier run={run} />
           <ScientificDataPanel run={run} profiles={profiles} baseline={baseline} />
           <HypothesisArena run={run} busy={hypothesisBusy} onSelect={handleSelectHypothesis} />

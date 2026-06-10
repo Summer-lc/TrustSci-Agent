@@ -1,7 +1,9 @@
+import { useMemo, useState } from "react";
 import { Check, FileSearch, Lock, RotateCcw, X } from "lucide-react";
 import { ResearchRun } from "../../lib/api";
 
 type EvidenceDecision = "pending" | "accepted" | "rejected";
+type EvidenceFilter = "all" | "report" | "frozen" | "accepted" | "rejected" | "unsupported";
 
 type Props = {
   run: ResearchRun | null;
@@ -12,8 +14,29 @@ type Props = {
 };
 
 export function EvidenceBoard({ run, busy = false, onDecision, onFreeze, onUnfreeze }: Props) {
+  const [filter, setFilter] = useState<EvidenceFilter>("all");
   const evidence = run?.evidence || [];
   const frozenCount = run?.frozen_evidence_ids.length || 0;
+  const matchedEvidenceIds = useMemo(
+    () => new Set((run?.claim_audit?.items || []).flatMap((item) => item.matched_evidence_ids)),
+    [run?.claim_audit?.items]
+  );
+  const filteredEvidence = evidence.filter((item) => {
+    if (filter === "report") return item.eligible_for_report && item.human_decision !== "rejected";
+    if (filter === "frozen") return item.frozen;
+    if (filter === "accepted") return item.human_decision === "accepted";
+    if (filter === "rejected") return item.human_decision === "rejected";
+    if (filter === "unsupported") return item.eligible_for_report && !matchedEvidenceIds.has(item.evidence_id);
+    return true;
+  });
+  const counts: Record<EvidenceFilter, number> = {
+    all: evidence.length,
+    report: evidence.filter((item) => item.eligible_for_report && item.human_decision !== "rejected").length,
+    frozen: evidence.filter((item) => item.frozen).length,
+    accepted: evidence.filter((item) => item.human_decision === "accepted").length,
+    rejected: evidence.filter((item) => item.human_decision === "rejected").length,
+    unsupported: evidence.filter((item) => item.eligible_for_report && !matchedEvidenceIds.has(item.evidence_id)).length
+  };
 
   return (
     <section className="panel span-8">
@@ -34,8 +57,19 @@ export function EvidenceBoard({ run, busy = false, onDecision, onFreeze, onUnfre
           )}
         </div>
       </div>
+      <div className="segmented">
+        {(["all", "report", "frozen", "accepted", "rejected", "unsupported"] as EvidenceFilter[]).map((key) => (
+          <button
+            key={key}
+            className={filter === key ? "active" : ""}
+            onClick={() => setFilter(key)}
+          >
+            {key} {counts[key]}
+          </button>
+        ))}
+      </div>
       <div className="list">
-        {evidence.slice(0, 8).map((item) => (
+        {filteredEvidence.slice(0, 8).map((item) => (
           <article className="item" key={item.evidence_id}>
             <div className="item-title">{item.claim}</div>
             <div className="item-meta">
@@ -83,7 +117,7 @@ export function EvidenceBoard({ run, busy = false, onDecision, onFreeze, onUnfre
             </div>
           </article>
         ))}
-        {!evidence.length && <p className="muted">暂无证据项</p>}
+        {!filteredEvidence.length && <p className="muted">当前筛选下暂无证据项</p>}
       </div>
     </section>
   );
