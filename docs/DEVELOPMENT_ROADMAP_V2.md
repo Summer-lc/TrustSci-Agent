@@ -71,6 +71,7 @@ Question
 - Human Gate v1：Evidence Board 支持接受/拒绝 evidence、冻结/解冻 evidence set。
 - Report Writer / Claim Verifier 已遵守 frozen evidence set；References 由 frozen paper ids 约束。
 - Markdown / JSON report export。
+- Workspace bundle export v1。
 
 ### 2.2 当前缺口
 
@@ -80,7 +81,7 @@ Question
 - Planner 已有 STORM-style multi-perspective v1，但还没有多轮 simulated conversation 和按 perspective 的 query expansion。
 - Literature Miner 已有 knowledge cards v1，但还没有 Qwen 抽取和完整 report outline freeze。
 - Hypothesis Arena 已有 deterministic reviewer debate / revision v1，但还没有 Qwen 驱动的多轮辩论和 novelty checker。
-- Run Workspace 已有文件化 v1，但还没有从 workspace 自动恢复内存态，也没有 workspace bundle。
+- Run Workspace 已有文件化 v1 和 workspace bundle export，但还没有从 workspace 自动恢复内存态。
 - Human Gate 已有 evidence freeze 和 citation freeze v1；仍缺补搜方向选择、report outline freeze。
 - 前端缺少 PDF export。
 - 参赛 demo case、截图材料、技术方案 PDF、视频脚本尚未封版。
@@ -556,7 +557,7 @@ Question
 - Docker Compose smoke test。
 - README 快速启动。
 - API endpoint summary。
-- workspace bundle export。
+- workspace bundle export 已完成 v1。
 - local run restore from workspace。
 
 ## 18. 最小封版路径

@@ -374,3 +374,7 @@ export async function selectHypothesis(runId: string, hypothesisId: string) {
 export function reportExportUrl(runId: string, format: "md" | "json" = "md") {
   return `${API_BASE}/api/runs/${runId}/report/export?format=${format}`;
 }
+
+export function workspaceExportUrl(runId: string) {
+  return `${API_BASE}/api/runs/${runId}/workspace/export`;
+}

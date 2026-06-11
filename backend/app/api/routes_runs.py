@@ -1,3 +1,4 @@
+import zipfile
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
@@ -261,6 +262,7 @@ async def list_artifacts(run_id: str) -> dict:
         "reports": settings.data_dir / "outputs" / "reports",
         "llm_calls": settings.data_dir / "outputs" / "llm_calls",
         "result_cards": settings.data_dir / "outputs" / "result_cards",
+        "workspace_bundles": settings.data_dir / "outputs" / "workspace_bundles",
         "browser_traces": settings.data_dir / "browser_traces",
     }
     artifacts = {}
@@ -275,6 +277,13 @@ async def list_artifacts(run_id: str) -> dict:
         ]
     artifacts["workspace"] = RunWorkspace(settings.data_dir).list_artifacts(run_id)
     return {"run_id": run_id, "artifacts": artifacts}
+
+
+@router.get("/{run_id}/workspace/export")
+async def export_workspace(run_id: str):
+    run = _must_get_run(run_id)
+    zip_path = _build_workspace_bundle(run)
+    return FileResponse(zip_path, media_type="application/zip", filename=f"{run_id}-workspace.zip")
 
 
 @router.post("/{run_id}/hypotheses/{hypothesis_id}/select", response_model=ResearchRun)
@@ -336,6 +345,24 @@ def _write_workspace(run: ResearchRun) -> None:
     workspace = RunWorkspace(get_settings().data_dir)
     run.workspace_path = str(workspace.ensure(run))
     run.workspace_artifacts = workspace.write_snapshot(run)
+
+
+def _build_workspace_bundle(run: ResearchRun) -> Path:
+    settings = get_settings()
+    workspace = RunWorkspace(settings.data_dir)
+    _write_workspace(run)
+    source_dir = workspace.run_dir(run.run_id)
+    if not source_dir.exists():
+        raise HTTPException(status_code=404, detail="workspace not found")
+
+    bundle_dir = settings.data_dir / "outputs" / "workspace_bundles"
+    bundle_dir.mkdir(parents=True, exist_ok=True)
+    zip_path = bundle_dir / f"{run.run_id}.zip"
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for path in sorted(source_dir.rglob("*")):
+            if path.is_file():
+                archive.write(path, Path(run.run_id) / path.relative_to(source_dir))
+    return zip_path
 
 
 def _refresh_report_if_possible(run: ResearchRun, *, require_experiment: bool = False) -> None:

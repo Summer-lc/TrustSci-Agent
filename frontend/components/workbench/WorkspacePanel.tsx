@@ -1,5 +1,5 @@
-import { FolderArchive } from "lucide-react";
-import { ResearchRun } from "../../lib/api";
+import { Download, FolderArchive } from "lucide-react";
+import { ResearchRun, workspaceExportUrl } from "../../lib/api";
 
 export function WorkspacePanel({ run }: { run: ResearchRun | null }) {
   const artifacts = run?.workspace_artifacts || {};
@@ -7,7 +7,14 @@ export function WorkspacePanel({ run }: { run: ResearchRun | null }) {
 
   return (
     <section className="panel span-6">
-      <h2><FolderArchive size={16} /> Research Workspace</h2>
+      <div className="panel-heading">
+        <h2><FolderArchive size={16} /> Research Workspace</h2>
+        {run?.workspace_path && (
+          <a className="secondary link-button" href={workspaceExportUrl(run.run_id)}>
+            <Download size={15} /> Bundle
+          </a>
+        )}
+      </div>
       {run?.workspace_path ? (
         <div className="list">
           <article className="item">

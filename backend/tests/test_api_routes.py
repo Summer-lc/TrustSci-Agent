@@ -1,3 +1,5 @@
+import io
+import zipfile
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -65,6 +67,14 @@ def test_run_detail_endpoints_before_execution() -> None:
     artifacts = client.get(f"/api/runs/{run_id}/artifacts")
     assert artifacts.status_code == 200
     assert any(path.endswith("research-state.json") for path in artifacts.json()["artifacts"]["workspace"])
+
+    workspace_zip = client.get(f"/api/runs/{run_id}/workspace/export")
+    assert workspace_zip.status_code == 200
+    assert workspace_zip.content[:2] == b"PK"
+    with zipfile.ZipFile(io.BytesIO(workspace_zip.content)) as archive:
+        names = set(archive.namelist())
+    assert f"{run_id}/research-state.json" in names
+    assert f"{run_id}/to_human/next-actions.md" in names
 
 
 def test_pdf_evidence_ingest_endpoint_accepts_data_dir_pdf() -> None:

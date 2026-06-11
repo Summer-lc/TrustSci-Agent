@@ -232,6 +232,7 @@ TrustSci-Agent
 - `POST /api/runs/{run_id}/hypotheses/{hypothesis_id}/select` 选择假设。
 - `POST /api/runs/{run_id}/report/rebuild` 基于当前 human gate 重建报告。
 - `GET /api/runs/{run_id}/report/export` 导出报告。
+- `GET /api/runs/{run_id}/workspace/export` 导出 workspace bundle。
 
 ### 7.3 Agent Orchestrator
 
@@ -345,7 +346,7 @@ data/workspace/{run_id}/
   to_human/
 ```
 
-该结构用于调试、复现、演示视频和参赛材料整理。
+该结构用于调试、复现、演示视频和参赛材料整理，并支持导出为 workspace bundle。
 
 ## 8. Agent 与工具设计
 
@@ -745,6 +746,7 @@ Reference Design 的 10 个模块不是最终系统模块，而是参考来源�
 - Human Gate v1：接受/拒绝 evidence、冻结/解冻 evidence set。
 - Report Writer mock，遵守 verified references 与 frozen evidence set。
 - Run Workspace v1。
+- Workspace bundle export v1。
 - Markdown / JSON report export。
 
 ## 15. 当前缺口
@@ -754,8 +756,8 @@ Reference Design 的 10 个模块不是最终系统模块，而是参考来源�
 - Citation Verifier 还需增加 author/year match、撤稿风险、原始 metadata snapshot 和 cache。
 - Literature Miner 已有 knowledge cards v1，但还没有 Qwen 抽取和完整 report outline freeze。
 - Hypothesis Arena 已有 deterministic reviewer debate / revision v1，但还没有 Qwen 驱动的多轮辩论和 novelty checker。
-- Run Workspace 已有文件化 v1，但还不能服务重启后自动恢复内存态。
-- 前端缺少补搜方向、workspace bundle、PDF export。
+- Run Workspace 已有文件化 v1 和 bundle export，但还不能服务重启后自动恢复内存态。
+- 前端缺少补搜方向和 PDF export。
 - Demo case、截图、视频脚本和 20 页技术方案尚未封版。
 
 ## 16. 暂不纳入 MVP 的能力

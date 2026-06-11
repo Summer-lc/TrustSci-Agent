@@ -40,6 +40,7 @@ Question
 - Citation approve/reject/freeze。
 - Human Gate evidence accept/reject/freeze。
 - Run Workspace artifacts。
+- Workspace bundle export。
 - Markdown / JSON report export。
 
 当前缺口：
