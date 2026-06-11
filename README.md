@@ -54,6 +54,7 @@ Useful commands:
 make down
 make logs
 make ps
+make freeze-demo RUN_ID=run_xxx
 ```
 
 ## Backend Development
@@ -88,6 +89,7 @@ curl -X POST http://localhost:8000/api/runs \
 See `docs/API.md` for the current FastAPI route surface.
 See `docs/FRONTEND.md` for the current Next.js component structure.
 See `docs/BAILIAN_QWEN.md` for Bailian/Qwen API configuration and ping checks.
+See `docs/DEMO_FREEZE.md` for the fixed demo case freeze workflow.
 
 ## Current MVP Capabilities
 
@@ -102,6 +104,7 @@ See `docs/BAILIAN_QWEN.md` for Bailian/Qwen API configuration and ping checks.
 - Hypothesis Generator creates three candidate hypotheses.
 - Final reports export as Markdown, JSON, and PDF.
 - Run workspaces can be bundled and restored from disk snapshots.
+- Demo runs can be frozen into `data/submission/{run_id}` with manifest, reports, workspace bundle, and Qwen logs.
 - Critic Agent scores and revises hypotheses.
 - Experiment Designer creates datasets, baselines, metrics, and failure modes.
 - Report Writer exports contest fields and citation audit log.

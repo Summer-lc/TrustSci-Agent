@@ -84,7 +84,7 @@ Question
 - Hypothesis Arena 已有 deterministic reviewer debate / revision v1，但还没有 Qwen 驱动的多轮辩论和 novelty checker。
 - Run Workspace 已有文件化、workspace bundle export 和手动 restore v1；后续可增强为启动时自动恢复。
 - Human Gate 已有 evidence freeze 和 citation freeze v1；仍缺补搜方向选择、report outline freeze。
-- 参赛 demo case、截图材料、技术方案 PDF、视频脚本尚未封版。
+- 参赛 demo case 已有 freeze package 工具；固定 run、截图材料、技术方案 PDF、视频脚本尚未封版。
 
 ## 3. 阶段总览
 
@@ -101,7 +101,7 @@ Question
 | Phase 8 | Experiment Designer | Done v1 | P1 | 可验证实验计划与小型 result card |
 | Phase 9 | Final Report Generator | Done v1 | P0 | 比赛字段报告、audit log、Markdown/JSON 导出 |
 | Phase 10 | 前端演示版 | In Progress | P0 | 视频级工作台与固定 demo 路径 |
-| Phase 11 | 参赛材料整理 | Pending | P0 | 技术方案、视频脚本、截图、提交清单 |
+| Phase 11 | 参赛材料整理 | In Progress | P0 | Demo freeze package、技术方案、视频脚本、截图、提交清单 |
 | Phase 12 | Post-MVP Expansion | Pending | P2 | PDF RAG、KG、skill registry、tree search、领域包 |
 
 ## 4. Phase 0：项目初始化
@@ -439,7 +439,7 @@ Question
 
 ## 15. Phase 11：参赛材料整理
 
-状态：未开始。
+状态：进行中。
 
 目标：形成可提交作品。
 
@@ -450,6 +450,7 @@ Question
    - 固定输入问题。
    - 固定 run artifact。
    - 固定 final report。
+   - 已完成 v1：`make freeze-demo RUN_ID=...` 生成 manifest、报告、workspace bundle 和 Qwen log 包。
 2. 技术方案 PDF：
    - 控制在 20 页以内。
    - 系统架构。
@@ -486,6 +487,7 @@ Question
 - demo run 能在 10 分钟内讲清楚。
 - 报告中没有 hallucinated references。
 - 百炼 Qwen 调用日志可截图。
+- demo freeze package 包含 manifest、final report、workspace bundle 和可选 Qwen log。
 - GitHub private repo 内容完整。
 - 技术方案不超过 20 页。
 
@@ -544,6 +546,7 @@ Question
 - selected hypothesis。
 - final report。
 - Qwen logs。
+- demo freeze package CLI 已完成 v1。
 - screenshots。
 - video script。
 - submission checklist update。
@@ -605,7 +608,7 @@ Question
 4. `docker-compose.yml`。
 5. `.env.example`。
 6. demo 数据。
-7. demo 输出报告。
+7. demo freeze package 和输出报告。
 8. Citation Audit Log。
 9. Claim Audit Report。
 10. 百炼 API 调用截图。

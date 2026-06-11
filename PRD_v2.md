@@ -752,6 +752,7 @@ Reference Design 的 10 个模块不是最终系统模块，而是参考来源�
 - Workspace bundle export v1。
 - Workspace restore v1。
 - Markdown / JSON / PDF report export。
+- Demo freeze package CLI v1：生成 manifest、报告样例、workspace bundle 和 Qwen log 包。
 
 ## 15. 当前缺口
 
@@ -762,7 +763,7 @@ Reference Design 的 10 个模块不是最终系统模块，而是参考来源�
 - Hypothesis Arena 已有 deterministic reviewer debate / revision v1，但还没有 Qwen 驱动的多轮辩论和 novelty checker。
 - Run Workspace 已有文件化、bundle export 和手动 restore v1；后续可增强为启动时自动恢复。
 - 前端缺少补搜方向。
-- Demo case、截图、视频脚本和 20 页技术方案尚未封版。
+- Demo case 已有 freeze package 工具；具体固定 run、截图、视频脚本和 20 页技术方案尚未封版。
 
 ## 16. 暂不纳入 MVP 的能力
 
@@ -827,7 +828,7 @@ References 只能来自 verified papers，通过 DOI、arXiv ID、title、source
 4. `docker-compose.yml`。
 5. `.env.example`。
 6. demo 数据。
-7. demo 输出报告。
+7. demo freeze package 和输出报告。
 8. Citation Audit Log。
 9. Claim Audit Report。
 10. 百炼 API 调用截图。
