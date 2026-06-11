@@ -41,6 +41,11 @@ async def list_runs() -> list[ResearchRun]:
     return run_store.list()
 
 
+@router.get("/workspaces")
+async def list_restorable_workspaces() -> list[dict]:
+    return RunWorkspace(get_settings().data_dir).list_snapshots()
+
+
 @router.get("/{run_id}", response_model=ResearchRun)
 async def get_run(run_id: str) -> ResearchRun:
     run = run_store.get(run_id)
@@ -284,6 +289,18 @@ async def export_workspace(run_id: str):
     run = _must_get_run(run_id)
     zip_path = _build_workspace_bundle(run)
     return FileResponse(zip_path, media_type="application/zip", filename=f"{run_id}-workspace.zip")
+
+
+@router.post("/{run_id}/workspace/restore", response_model=ResearchRun)
+async def restore_workspace(run_id: str) -> ResearchRun:
+    workspace = RunWorkspace(get_settings().data_dir)
+    try:
+        run = workspace.load_snapshot(run_id)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="workspace snapshot not found") from None
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return run_store.save(run)
 
 
 @router.post("/{run_id}/hypotheses/{hypothesis_id}/select", response_model=ResearchRun)

@@ -76,6 +76,20 @@ def test_run_detail_endpoints_before_execution() -> None:
     assert f"{run_id}/research-state.json" in names
     assert f"{run_id}/to_human/next-actions.md" in names
 
+    run_store.delete(run_id)
+    assert client.get(f"/api/runs/{run_id}").status_code == 404
+
+    workspaces = client.get("/api/runs/workspaces")
+    assert workspaces.status_code == 200
+    assert any(item["run_id"] == run_id for item in workspaces.json())
+
+    restored = client.post(f"/api/runs/{run_id}/workspace/restore")
+    assert restored.status_code == 200
+    assert restored.json()["run_id"] == run_id
+    assert restored.json()["question"] == payload["question"]
+    assert "research_state" in restored.json()["workspace_artifacts"]
+    assert client.get(f"/api/runs/{run_id}").status_code == 200
+
 
 def test_pdf_evidence_ingest_endpoint_accepts_data_dir_pdf() -> None:
     payload = {

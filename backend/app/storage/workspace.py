@@ -53,6 +53,46 @@ class RunWorkspace:
             return []
         return [str(path) for path in sorted(run_dir.rglob("*")) if path.is_file()]
 
+    def list_snapshots(self) -> list[dict[str, Any]]:
+        if not self.root.exists():
+            return []
+        snapshots = []
+        for run_dir in sorted(path for path in self.root.iterdir() if path.is_dir()):
+            snapshot_path = run_dir / "run.json"
+            if not snapshot_path.exists():
+                continue
+            try:
+                data = json.loads(snapshot_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            snapshots.append(
+                {
+                    "run_id": data.get("run_id", run_dir.name),
+                    "domain": data.get("domain", ""),
+                    "question": data.get("question", ""),
+                    "status": data.get("status", "unknown"),
+                    "current_stage": data.get("current_stage", "unknown"),
+                    "updated_at": data.get("updated_at"),
+                    "workspace_path": str(run_dir),
+                }
+            )
+        return sorted(snapshots, key=lambda item: str(item.get("updated_at") or ""), reverse=True)
+
+    def load_snapshot(self, run_id: str) -> ResearchRun:
+        snapshot_path = self.run_dir(run_id) / "run.json"
+        if not snapshot_path.exists():
+            raise FileNotFoundError(f"workspace snapshot not found for {run_id}")
+        try:
+            data = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"workspace snapshot is invalid json for {run_id}") from exc
+        run = ResearchRun.model_validate(data)
+        if run.run_id != run_id:
+            raise ValueError(f"workspace snapshot run_id mismatch for {run_id}")
+        run.workspace_path = str(self.ensure(run))
+        run.workspace_artifacts = self.write_snapshot(run)
+        return run
+
 
 def _research_state(run: ResearchRun) -> dict[str, Any]:
     return {

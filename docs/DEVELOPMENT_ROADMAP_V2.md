@@ -72,6 +72,7 @@ Question
 - Report Writer / Claim Verifier 已遵守 frozen evidence set；References 由 frozen paper ids 约束。
 - Markdown / JSON report export。
 - Workspace bundle export v1。
+- Workspace restore v1：可发现磁盘 workspace snapshot，并手动恢复到内存 run store。
 
 ### 2.2 当前缺口
 
@@ -81,7 +82,7 @@ Question
 - Planner 已有 STORM-style multi-perspective v1，但还没有多轮 simulated conversation 和按 perspective 的 query expansion。
 - Literature Miner 已有 knowledge cards v1，但还没有 Qwen 抽取和完整 report outline freeze。
 - Hypothesis Arena 已有 deterministic reviewer debate / revision v1，但还没有 Qwen 驱动的多轮辩论和 novelty checker。
-- Run Workspace 已有文件化 v1 和 workspace bundle export，但还没有从 workspace 自动恢复内存态。
+- Run Workspace 已有文件化、workspace bundle export 和手动 restore v1；后续可增强为启动时自动恢复。
 - Human Gate 已有 evidence freeze 和 citation freeze v1；仍缺补搜方向选择、report outline freeze。
 - 前端缺少 PDF export。
 - 参赛 demo case、截图材料、技术方案 PDF、视频脚本尚未封版。
@@ -558,7 +559,7 @@ Question
 - README 快速启动。
 - API endpoint summary。
 - workspace bundle export 已完成 v1。
-- local run restore from workspace。
+- local run restore from workspace 已完成 v1。
 
 ## 18. 最小封版路径
 

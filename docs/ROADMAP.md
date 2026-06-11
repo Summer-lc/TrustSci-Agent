@@ -41,6 +41,7 @@ Question
 - Human Gate evidence accept/reject/freeze。
 - Run Workspace artifacts。
 - Workspace bundle export。
+- Workspace restore。
 - Markdown / JSON report export。
 
 当前缺口：

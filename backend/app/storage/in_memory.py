@@ -22,10 +22,13 @@ class RunStore:
             self._runs[run.run_id] = run
             return run
 
+    def delete(self, run_id: str) -> None:
+        with self._lock:
+            self._runs.pop(run_id, None)
+
     def list(self) -> list[ResearchRun]:
         with self._lock:
             return list(self._runs.values())
 
 
 run_store = RunStore()
-

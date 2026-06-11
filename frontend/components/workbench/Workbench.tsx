@@ -16,9 +16,12 @@ import {
   getPublicConfig,
   getRun,
   ingestPdfEvidence,
+  listRestorableWorkspaces,
   listRuns,
   PublicConfig,
   ResearchRun,
+  RestorableWorkspace,
+  restoreWorkspace,
   runBaseline,
   selectHypothesis,
   startRun,
@@ -53,6 +56,7 @@ export function Workbench() {
   const [enableArxiv, setEnableArxiv] = useState(true);
   const [run, setRun] = useState<ResearchRun | null>(null);
   const [runs, setRuns] = useState<ResearchRun[]>([]);
+  const [workspaces, setWorkspaces] = useState<RestorableWorkspace[]>([]);
   const [config, setConfig] = useState<PublicConfig | null>(null);
   const [profiles, setProfiles] = useState<DatasetProfile[]>([]);
   const [baseline, setBaseline] = useState<BaselineResultCard | null>(null);
@@ -65,6 +69,7 @@ export function Workbench() {
   const [evidenceBusy, setEvidenceBusy] = useState(false);
   const [citationBusy, setCitationBusy] = useState(false);
   const [hypothesisBusy, setHypothesisBusy] = useState(false);
+  const [restoreBusy, setRestoreBusy] = useState(false);
 
   useEffect(() => {
     void loadInitialData();
@@ -85,16 +90,18 @@ export function Workbench() {
   }, [run?.run_id, run?.status]);
 
   async function loadInitialData() {
-    const [nextConfig, nextProfiles, nextBaseline, nextRuns] = await Promise.all([
+    const [nextConfig, nextProfiles, nextBaseline, nextRuns, nextWorkspaces] = await Promise.all([
       getPublicConfig().catch(() => null),
       getDataProfiles().catch(() => []),
       runBaseline().catch(() => null),
-      listRuns().catch(() => [])
+      listRuns().catch(() => []),
+      listRestorableWorkspaces().catch(() => [])
     ]);
     setConfig(nextConfig);
     setProfiles(nextProfiles);
     setBaseline(nextBaseline);
     setRuns(nextRuns);
+    setWorkspaces(nextWorkspaces);
     if (nextRuns[0]) setRun(nextRuns[0]);
   }
 
@@ -102,6 +109,12 @@ export function Workbench() {
     const nextRuns = await listRuns();
     setRuns(nextRuns);
     return nextRuns;
+  }
+
+  async function refreshWorkspaces() {
+    const nextWorkspaces = await listRestorableWorkspaces();
+    setWorkspaces(nextWorkspaces);
+    return nextWorkspaces;
   }
 
   async function handleStart() {
@@ -113,10 +126,26 @@ export function Workbench() {
       const started = await startRun(created.run_id);
       setRun(started);
       await refreshRuns();
+      await refreshWorkspaces();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleRestore(runId: string) {
+    setRestoreBusy(true);
+    setError("");
+    try {
+      const restored = await restoreWorkspace(runId);
+      setRun(restored);
+      await refreshRuns();
+      await refreshWorkspaces();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Workspace restore failed");
+    } finally {
+      setRestoreBusy(false);
     }
   }
 
@@ -284,7 +313,14 @@ export function Workbench() {
           onStart={handleStart}
           onRefresh={refreshCurrentRun}
         />
-        <RunHistory runs={runs} selectedRunId={run?.run_id} onSelect={setRun} />
+        <RunHistory
+          runs={runs}
+          workspaces={workspaces}
+          selectedRunId={run?.run_id}
+          restoring={restoreBusy}
+          onSelect={setRun}
+          onRestore={handleRestore}
+        />
       </aside>
 
       <section className="content">

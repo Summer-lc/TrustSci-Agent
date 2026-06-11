@@ -50,6 +50,16 @@ export type BrowserCaptureResult = {
   downloaded_pdfs: Array<Record<string, string | number>>;
 };
 
+export type RestorableWorkspace = {
+  run_id: string;
+  domain: string;
+  question: string;
+  status: string;
+  current_stage: string;
+  updated_at?: string;
+  workspace_path: string;
+};
+
 export type ResearchRun = {
   run_id: string;
   domain: string;
@@ -293,6 +303,14 @@ export async function getRun(runId: string) {
 
 export async function listRuns() {
   return requestJson<ResearchRun[]>(`${API_BASE}/api/runs`);
+}
+
+export async function listRestorableWorkspaces() {
+  return requestJson<RestorableWorkspace[]>(`${API_BASE}/api/runs/workspaces`);
+}
+
+export async function restoreWorkspace(runId: string) {
+  return requestJson<ResearchRun>(`${API_BASE}/api/runs/${runId}/workspace/restore`, { method: "POST" });
 }
 
 export async function getPublicConfig() {
