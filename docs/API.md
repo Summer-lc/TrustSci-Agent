@@ -20,16 +20,24 @@ http://localhost:8000/docs
 - `GET /api/runs/{run_id}`
 - `POST /api/runs/{run_id}/start`
 - `POST /api/runs/{run_id}/run-sync`
+- `GET /api/runs/workspaces`
 - `GET /api/runs/{run_id}/papers`
 - `GET /api/runs/{run_id}/evidence`
+- `POST /api/runs/{run_id}/evidence/{evidence_id}/decision`
+- `POST /api/runs/{run_id}/evidence/freeze`
+- `POST /api/runs/{run_id}/evidence/unfreeze`
 - `GET /api/runs/{run_id}/data-profiles`
 - `GET /api/runs/{run_id}/baseline-result`
 - `GET /api/runs/{run_id}/hypotheses`
 - `POST /api/runs/{run_id}/hypotheses/{hypothesis_id}/select`
 - `GET /api/runs/{run_id}/report`
 - `POST /api/runs/{run_id}/report`
+- `POST /api/runs/{run_id}/report/rebuild`
 - `GET /api/runs/{run_id}/report/export?format=md`
 - `GET /api/runs/{run_id}/report/export?format=json`
+- `GET /api/runs/{run_id}/report/export?format=pdf`
+- `GET /api/runs/{run_id}/workspace/export`
+- `POST /api/runs/{run_id}/workspace/restore`
 - `GET /api/runs/{run_id}/llm-calls`
 - `GET /api/runs/{run_id}/artifacts`
 

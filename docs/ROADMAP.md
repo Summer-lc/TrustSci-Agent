@@ -42,14 +42,13 @@ Question
 - Run Workspace artifacts。
 - Workspace bundle export。
 - Workspace restore。
-- Markdown / JSON report export。
+- Markdown / JSON / PDF report export。
 
 当前缺口：
 
 - Hypothesis Arena 还缺 Qwen 驱动的多轮 debate 和 novelty check。
 - Claim Verifier 还缺 Qwen / embedding 语义核验。
 - Citation Verifier 还缺 author/year match、metadata snapshot、cache、撤稿风险。
-- 前端还缺 PDF export。
 - Demo case、技术方案 PDF、视频脚本、截图材料还未封版。
 
 ## Phase Summary
@@ -106,7 +105,7 @@ Question
 2. Evidence set freeze，并确认 References 不超出 frozen set。
 3. Hypothesis Arena 加 revision / debate 展示。
 4. Claim Audit Panel。
-5. Final report Markdown / JSON 样例。
+5. Final report Markdown / JSON / PDF 样例。
 6. 百炼 Qwen 调用日志截图。
 7. 技术方案 PDF。
 8. 10 分钟视频脚本和截图。

@@ -17,6 +17,10 @@ export function ReportViewer({ run }: { run: ResearchRun | null }) {
               <Download size={15} />
               JSON
             </a>
+            <a className="secondary link-button" href={reportExportUrl(run.run_id, "pdf")}>
+              <Download size={15} />
+              PDF
+            </a>
           </div>
         )}
       </div>

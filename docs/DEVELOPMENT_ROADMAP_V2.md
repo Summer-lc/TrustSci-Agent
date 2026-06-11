@@ -70,7 +70,7 @@ Question
 - CitationVerifier 面板支持接受/拒绝 citation、冻结/解冻 citation set。
 - Human Gate v1：Evidence Board 支持接受/拒绝 evidence、冻结/解冻 evidence set。
 - Report Writer / Claim Verifier 已遵守 frozen evidence set；References 由 frozen paper ids 约束。
-- Markdown / JSON report export。
+- Markdown / JSON / PDF report export。
 - Workspace bundle export v1。
 - Workspace restore v1：可发现磁盘 workspace snapshot，并手动恢复到内存 run store。
 
@@ -84,7 +84,6 @@ Question
 - Hypothesis Arena 已有 deterministic reviewer debate / revision v1，但还没有 Qwen 驱动的多轮辩论和 novelty checker。
 - Run Workspace 已有文件化、workspace bundle export 和手动 restore v1；后续可增强为启动时自动恢复。
 - Human Gate 已有 evidence freeze 和 citation freeze v1；仍缺补搜方向选择、report outline freeze。
-- 前端缺少 PDF export。
 - 参赛 demo case、截图材料、技术方案 PDF、视频脚本尚未封版。
 
 ## 3. 阶段总览
@@ -391,13 +390,13 @@ Question
 - Report Outline Builder。
 - report outline freeze。
 - unsupported claim 自动降级为 risk / limitation。
-- PDF export。
+- PDF export 已完成 v1。
 - report quality checklist。
 
 验收标准：
 
 - Final Report 页面可展示完整报告。
-- 可以导出 Markdown / JSON。
+- 可以导出 Markdown / JSON / PDF。
 - 报告中没有 unverified references。
 - References 不会超出 frozen evidence set。
 
@@ -569,7 +568,7 @@ Question
 2. Evidence set freeze，并确认 References 不超出 frozen set。
 3. Hypothesis Arena 加 revision / debate 展示。
 4. Claim Audit Panel。
-5. Final report Markdown / JSON 样例。
+5. Final report Markdown / JSON / PDF 样例。
 6. 百炼 Qwen 调用日志截图。
 7. 技术方案 PDF。
 8. 10 分钟视频脚本和截图。

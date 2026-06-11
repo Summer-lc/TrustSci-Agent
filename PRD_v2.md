@@ -46,7 +46,7 @@ TrustSci-Agent 是一个基于阿里云百炼 Qwen API 的可信多智能体 AI 
 6. 通过多智能体 reviewer / critic 进行批判、修订和选择。
 7. 让用户在关键节点选择假设、接受或拒绝证据、冻结 evidence set。
 8. 生成可验证实验计划、baseline result card 和标准化最终报告。
-9. 导出 Citation Verification Report、Citation Audit Log、Markdown / JSON 报告和 workspace artifacts。
+9. 导出 Citation Verification Report、Citation Audit Log、Markdown / JSON / PDF 报告和 workspace artifacts。
 
 参赛目标：
 
@@ -645,7 +645,7 @@ failure_modes.md
 
 ### 10.7 Final Report
 
-展示标准化研究计划、References、Citation Audit Log、Claim Audit Report，并支持 Markdown / JSON 导出。PDF 导出作为封版阶段增强。
+展示标准化研究计划、References、Citation Audit Log、Claim Audit Report，并支持 Markdown / JSON / PDF 导出。
 
 ## 11. 技术栈与仓库策略
 
@@ -656,6 +656,7 @@ Backend：
 - Pydantic。
 - httpx。
 - pypdf / PDF parser。
+- reportlab / PDF report export。
 - Playwright client / browser-worker。
 - Docker。
 - 后续可迁移 SQLite / PostgreSQL、Chroma / Qdrant。
@@ -666,7 +667,7 @@ Frontend：
 - React。
 - TypeScript。
 - CSS / 轻量设计系统。
-- 后续可增加 React Query、Markdown renderer、PDF export。
+- 后续可增加 React Query、Markdown renderer。
 
 Model：
 
@@ -750,7 +751,7 @@ Reference Design 的 10 个模块不是最终系统模块，而是参考来源�
 - Run Workspace v1。
 - Workspace bundle export v1。
 - Workspace restore v1。
-- Markdown / JSON report export。
+- Markdown / JSON / PDF report export。
 
 ## 15. 当前缺口
 
@@ -760,7 +761,7 @@ Reference Design 的 10 个模块不是最终系统模块，而是参考来源�
 - Literature Miner 已有 knowledge cards v1，但还没有 Qwen 抽取和完整 report outline freeze。
 - Hypothesis Arena 已有 deterministic reviewer debate / revision v1，但还没有 Qwen 驱动的多轮辩论和 novelty checker。
 - Run Workspace 已有文件化、bundle export 和手动 restore v1；后续可增强为启动时自动恢复。
-- 前端缺少补搜方向和 PDF export。
+- 前端缺少补搜方向。
 - Demo case、截图、视频脚本和 20 页技术方案尚未封版。
 
 ## 16. 暂不纳入 MVP 的能力

@@ -24,6 +24,7 @@ from app.storage.workspace import RunWorkspace
 from app.tools.claim_verifier import ClaimVerifier
 from app.tools.llm_logger import read_llm_logs
 from app.tools.pdf_parser import parse_pdf_chunks
+from app.tools.report_pdf_exporter import export_markdown_pdf
 from app.workflows.scientist_workflow import ScientistWorkflow, _write_markdown_report
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
@@ -343,12 +344,19 @@ async def export_report(run_id: str, format: str = "md"):
         if run.report is None:
             raise HTTPException(status_code=404, detail="report not generated")
         return run.report
-    if format != "md":
-        raise HTTPException(status_code=400, detail="format must be md or json")
-    path = get_settings().data_dir / "outputs" / "reports" / f"{run_id}.md"
-    if not path.exists():
+    if format not in {"md", "pdf"}:
+        raise HTTPException(status_code=400, detail="format must be md, json, or pdf")
+    settings = get_settings()
+    md_path = settings.data_dir / "outputs" / "reports" / f"{run_id}.md"
+    if not md_path.exists() and run.report is not None:
+        _write_markdown_report(run, settings.data_dir)
+    if not md_path.exists():
         raise HTTPException(status_code=404, detail="markdown report not found")
-    return FileResponse(path, media_type="text/markdown", filename=f"{run_id}.md")
+    if format == "pdf":
+        pdf_path = settings.data_dir / "outputs" / "reports" / f"{run_id}.pdf"
+        export_markdown_pdf(md_path.read_text(encoding="utf-8"), pdf_path)
+        return FileResponse(pdf_path, media_type="application/pdf", filename=f"{run_id}.pdf")
+    return FileResponse(md_path, media_type="text/markdown", filename=f"{run_id}.md")
 
 
 def _must_get_run(run_id: str) -> ResearchRun:

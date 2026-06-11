@@ -81,7 +81,9 @@ curl -X POST http://localhost:8000/api/runs \
 3. `GET /api/runs/{run_id}`
 4. `GET /api/runs/{run_id}/evidence`
 5. `GET /api/runs/{run_id}/hypotheses`
-6. `GET /api/runs/{run_id}/report/export`
+6. `GET /api/runs/{run_id}/report/export?format=md|json|pdf`
+7. `GET /api/runs/{run_id}/workspace/export`
+8. `POST /api/runs/{run_id}/workspace/restore`
 
 See `docs/API.md` for the current FastAPI route surface.
 See `docs/FRONTEND.md` for the current Next.js component structure.
@@ -98,6 +100,8 @@ See `docs/BAILIAN_QWEN.md` for Bailian/Qwen API configuration and ping checks.
 - Scientific Data Agent profiles Matbench metadata, an optional Materials Project adapter, and the bundled solid-electrolyte CSV.
 - A deterministic baseline result card is written to `data/outputs/result_cards/`.
 - Hypothesis Generator creates three candidate hypotheses.
+- Final reports export as Markdown, JSON, and PDF.
+- Run workspaces can be bundled and restored from disk snapshots.
 - Critic Agent scores and revises hypotheses.
 - Experiment Designer creates datasets, baselines, metrics, and failure modes.
 - Report Writer exports contest fields and citation audit log.

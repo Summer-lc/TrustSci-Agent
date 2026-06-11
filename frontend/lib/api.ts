@@ -389,7 +389,7 @@ export async function selectHypothesis(runId: string, hypothesisId: string) {
   });
 }
 
-export function reportExportUrl(runId: string, format: "md" | "json" = "md") {
+export function reportExportUrl(runId: string, format: "md" | "json" | "pdf" = "md") {
   return `${API_BASE}/api/runs/${runId}/report/export?format=${format}`;
 }
 

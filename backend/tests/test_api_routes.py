@@ -310,6 +310,14 @@ def test_select_hypothesis_rebuilds_experiment_and_report() -> None:
     assert body["report"]["paper_title"].startswith("Evidence-Grounded Research Plan: Second candidate")
     assert body["claim_audit"]["total"] > 0
 
+    markdown = client.get(f"/api/runs/{run.run_id}/report/export?format=md")
+    assert markdown.status_code == 200
+    assert markdown.text.startswith("# Evidence-Grounded Research Plan")
+
+    pdf = client.get(f"/api/runs/{run.run_id}/report/export?format=pdf")
+    assert pdf.status_code == 200
+    assert pdf.content.startswith(b"%PDF")
+
 
 def _critic(evidence_support: int = 7) -> CriticReview:
     return CriticReview(
