@@ -32,10 +32,16 @@ Create a draft package, allowing warnings:
 make freeze-demo RUN_ID=run_xxx
 ```
 
-Create a final package and fail if evidence/citations/report/logs are not ready:
+Create a final package and fail if evidence/citations/report/logs/claim audit are not ready:
 
 ```bash
 make freeze-demo-strict RUN_ID=run_xxx
+```
+
+If the current verified and non-rejected citations/evidence have already been reviewed and should become the fixed demo set, freeze them and create the strict package in one command:
+
+```bash
+make freeze-demo-current RUN_ID=run_xxx
 ```
 
 The command creates:
@@ -52,7 +58,21 @@ data/submission/{run_id}/
 ```
 
 If Qwen/Bailian logging is not available, the manifest keeps the freeze package usable but records a warning.
-For final contest packaging, prefer the strict command and resolve all warnings before recording screenshots or video.
+For final contest packaging, prefer `make freeze-demo-strict` after manual frontend review. It fails if Claim Audit still has unsupported claims. Use `make freeze-demo-current` only when the current verified set is accepted as the fixed demo evidence set.
+
+## Current Local Demo Freeze
+
+Current local frozen candidate:
+
+- Run id: `run_6ed0df4301`
+- Package: `data/submission/run_6ed0df4301`
+- Papers: 2 verified references
+- Evidence: 2 frozen evidence items
+- Citation integrity score: 1.0
+- Claim support score: 0.929
+- Strict warnings: none
+
+`data/submission/` is intentionally git-ignored. Keep the package locally for screenshots, video recording, and final submission assembly.
 
 ## Submission Use
 

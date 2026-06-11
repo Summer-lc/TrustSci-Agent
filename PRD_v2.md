@@ -763,7 +763,7 @@ Reference Design 的 10 个模块不是最终系统模块，而是参考来源�
 - Hypothesis Arena 已有 deterministic reviewer debate / revision v1，但还没有 Qwen 驱动的多轮辩论和 novelty checker。
 - Run Workspace 已有文件化、bundle export 和手动 restore v1；后续可增强为启动时自动恢复。
 - 前端缺少补搜方向。
-- Demo case 已有 freeze package 工具；具体固定 run、截图、视频脚本和 20 页技术方案尚未封版。
+- Demo case 已有本地 strict freeze candidate `run_6ed0df4301`；截图、视频脚本和 20 页技术方案尚未封版。
 
 ## 16. 暂不纳入 MVP 的能力
 

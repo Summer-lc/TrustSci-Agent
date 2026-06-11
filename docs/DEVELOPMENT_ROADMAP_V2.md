@@ -84,7 +84,7 @@ Question
 - Hypothesis Arena 已有 deterministic reviewer debate / revision v1，但还没有 Qwen 驱动的多轮辩论和 novelty checker。
 - Run Workspace 已有文件化、workspace bundle export 和手动 restore v1；后续可增强为启动时自动恢复。
 - Human Gate 已有 evidence freeze 和 citation freeze v1；仍缺补搜方向选择、report outline freeze。
-- 参赛 demo case 已有 freeze package 工具；固定 run、截图材料、技术方案 PDF、视频脚本尚未封版。
+- 参赛 demo case 已有本地 strict freeze candidate `run_6ed0df4301`；截图材料、技术方案 PDF、视频脚本尚未封版。
 
 ## 3. 阶段总览
 
@@ -451,6 +451,8 @@ Question
    - 固定 run artifact。
    - 固定 final report。
    - 已完成 v1：`make demo-candidates` 检查候选 run，`make freeze-demo-strict RUN_ID=...` 生成 manifest、报告、workspace bundle 和 Qwen log 包。
+   - 已完成 v1：`make freeze-demo-current RUN_ID=...` 可将当前 verified evidence/citations 固定为 demo set 并 strict 封包。
+   - 当前本地 strict freeze candidate：`run_6ed0df4301`。
 2. 技术方案 PDF：
    - 控制在 20 页以内。
    - 系统架构。

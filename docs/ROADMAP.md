@@ -50,7 +50,7 @@ Question
 - Hypothesis Arena 还缺 Qwen 驱动的多轮 debate 和 novelty check。
 - Claim Verifier 还缺 Qwen / embedding 语义核验。
 - Citation Verifier 还缺 author/year match、metadata snapshot、cache、撤稿风险。
-- Demo case 已有 freeze package 工具；固定 run、技术方案 PDF、视频脚本、截图材料还未封版。
+- Demo case 已有本地 strict freeze candidate `run_6ed0df4301`；技术方案 PDF、视频脚本、截图材料还未封版。
 
 ## Phase Summary
 
@@ -91,9 +91,9 @@ Question
 ### Sprint D: Demo Freeze
 
 - 已完成 v1：`make demo-candidates` 检查候选 run，`make freeze-demo-strict RUN_ID=...` 生成 manifest、final report、workspace bundle 和 Qwen logs 包。
-- 待固定：固态电解质 demo run。
-- 待确认：frozen evidence set。
-- 待确认：selected hypothesis。
+- 已完成 v1：`make freeze-demo-current RUN_ID=...` 可将当前 verified evidence/citations 固定为 demo set 并 strict 封包。
+- 当前本地 strict freeze candidate：`run_6ed0df4301`。
+- 已确认：frozen evidence set、frozen citation set、final report、Qwen logs。
 - screenshots。
 - video script。
 

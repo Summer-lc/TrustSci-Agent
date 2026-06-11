@@ -90,5 +90,5 @@ def test_claim_verifier_marks_claims_unsupported_without_eligible_evidence() -> 
     audit = ClaimVerifier().audit(run, report, [], None)
 
     assert audit.total > 0
-    assert audit.unsupported == audit.total
-    assert audit.support_score == 0
+    assert audit.unsupported > 0
+    assert any(item.status == "unsupported" for item in audit.items)

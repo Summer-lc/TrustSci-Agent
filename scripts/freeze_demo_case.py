@@ -18,6 +18,10 @@ BACKEND_ROOT = REPO_ROOT / "backend"
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
+from app.agents.report_writer_agent import ReportWriterAgent  # noqa: E402
+from app.evidence.selection import reportable_evidence  # noqa: E402
+from app.storage.workspace import RunWorkspace  # noqa: E402
+from app.tools.claim_verifier import ClaimVerifier  # noqa: E402
 from app.schemas.run import ResearchRun  # noqa: E402
 from app.tools.report_pdf_exporter import export_markdown_pdf  # noqa: E402
 from app.workflows.scientist_workflow import _write_markdown_report  # noqa: E402
@@ -66,6 +70,46 @@ def list_demo_candidates(data_dir: Path) -> list[dict[str, Any]]:
             }
         )
     return sorted(candidates, key=lambda item: str(item.get("updated_at") or ""), reverse=True)
+
+
+def accept_current_verified(run_id: str, data_dir: Path) -> ResearchRun:
+    data_dir = data_dir.resolve()
+    run = _load_run_snapshot(data_dir, run_id)
+    run.citation_frozen = True
+    run.frozen_paper_ids = [
+        paper.paper_id
+        for paper in run.papers
+        if paper.verification_status == "verified" and paper.report_eligible and paper.human_decision != "rejected"
+    ]
+    frozen_paper_ids = set(run.frozen_paper_ids)
+    run.evidence_frozen = True
+    run.frozen_evidence_ids = [
+        item.evidence_id
+        for item in run.evidence
+        if item.verified
+        and item.eligible_for_report
+        and item.human_decision != "rejected"
+        and (not item.paper_id or item.paper_id in frozen_paper_ids)
+    ]
+    _sync_frozen_markers(run)
+    if run.experiment_plan is not None:
+        selected = _selected_hypothesis(run)
+        run.report = ReportWriterAgent().run(
+            run,
+            selected,
+            run.experiment_plan,
+            run.evidence,
+            run.papers,
+            run.knowledge_cards,
+            run.data_profiles,
+            run.baseline_result_card,
+        )
+        run.claim_audit = ClaimVerifier().audit(run, run.report, reportable_evidence(run), selected)
+        _write_markdown_report(run, data_dir)
+    workspace = RunWorkspace(data_dir)
+    run.workspace_path = str(workspace.ensure(run))
+    run.workspace_artifacts = workspace.write_snapshot(run)
+    return run
 
 
 def _load_run_snapshot(data_dir: Path, run_id: str) -> ResearchRun:
@@ -146,6 +190,7 @@ def _build_manifest(
         "report_generated": run.report is not None,
         "citation_report_present": run.citation_report is not None,
         "claim_audit_present": run.claim_audit is not None,
+        "no_unsupported_claims": run.claim_audit is not None and run.claim_audit.unsupported == 0,
         "evidence_frozen": run.evidence_frozen,
         "citation_frozen": run.citation_frozen,
         "references_within_frozen_papers": not frozen_reference_ids or reference_ids.issubset(frozen_reference_ids),
@@ -186,6 +231,7 @@ def _warnings(checks: dict[str, bool]) -> list[str]:
         "report_generated": "Final report has not been generated.",
         "citation_report_present": "Citation verification report is missing.",
         "claim_audit_present": "Claim audit report is missing.",
+        "no_unsupported_claims": "Claim audit still contains unsupported claims.",
         "evidence_frozen": "Evidence set is not frozen.",
         "citation_frozen": "Citation set is not frozen.",
         "references_within_frozen_papers": "Report references exceed the frozen citation set.",
@@ -193,6 +239,19 @@ def _warnings(checks: dict[str, bool]) -> list[str]:
         "qwen_log_present": "Qwen/Bailian LLM log is missing.",
     }
     return [message for key, message in labels.items() if not checks.get(key, False)]
+
+
+def _sync_frozen_markers(run: ResearchRun) -> None:
+    frozen_evidence_ids = set(run.frozen_evidence_ids)
+    frozen_paper_ids = set(run.frozen_paper_ids)
+    for item in run.evidence:
+        item.frozen = item.evidence_id in frozen_evidence_ids
+    for paper in run.papers:
+        paper.frozen = paper.paper_id in frozen_paper_ids
+
+
+def _selected_hypothesis(run: ResearchRun):
+    return next((hypothesis for hypothesis in run.hypotheses if hypothesis.selected), run.hypotheses[0] if run.hypotheses else None)
 
 
 def _write_readme(path: Path, run: ResearchRun, manifest: dict[str, Any]) -> None:
@@ -207,6 +266,7 @@ def _write_readme(path: Path, run: ResearchRun, manifest: dict[str, Any]) -> Non
         f"- Evidence frozen: {manifest['checks']['evidence_frozen']}\n"
         f"- Citation frozen: {manifest['checks']['citation_frozen']}\n"
         f"- References within frozen papers: {manifest['checks']['references_within_frozen_papers']}\n"
+        f"- No unsupported claims: {manifest['checks']['no_unsupported_claims']}\n"
         f"- Citation integrity score: {manifest['citation_integrity_score']}\n"
         f"- Claim support score: {manifest['claim_support_score']}\n\n"
         "## Warnings\n\n"
@@ -238,6 +298,11 @@ def main() -> int:
     parser.add_argument("--data-dir", default="data", type=Path, help="TrustSci-Agent DATA_DIR.")
     parser.add_argument("--output-root", default=Path("data/submission"), type=Path, help="Freeze output root.")
     parser.add_argument("--strict", action="store_true", help="Fail if the run is not final-submission ready.")
+    parser.add_argument(
+        "--accept-current-verified",
+        action="store_true",
+        help="Freeze the current verified, non-rejected citations/evidence before packaging.",
+    )
     parser.add_argument("--list-candidates", action="store_true", help="List workspace snapshots and readiness checks.")
     args = parser.parse_args()
 
@@ -246,6 +311,8 @@ def main() -> int:
         return 0
     if not args.run_id:
         parser.error("run_id is required unless --list-candidates is used")
+    if args.accept_current_verified:
+        accept_current_verified(args.run_id, args.data_dir)
     manifest = freeze_demo_case(args.run_id, args.data_dir, args.output_root, strict=args.strict)
     print(json.dumps({"run_id": args.run_id, "output_dir": manifest["output_dir"]}, ensure_ascii=False))
     return 0

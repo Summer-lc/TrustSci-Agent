@@ -58,6 +58,30 @@ def test_freeze_demo_case_strict_rejects_unfrozen_run(tmp_path: Path) -> None:
         module.freeze_demo_case(run.run_id, data_dir, output_root, strict=True)
 
 
+def test_accept_current_verified_prepares_strict_demo_package(tmp_path: Path) -> None:
+    module = _load_freeze_script()
+    data_dir = tmp_path / "data"
+    output_root = tmp_path / "submission"
+    run = _demo_run()
+    run.evidence_frozen = False
+    run.citation_frozen = False
+    run.frozen_evidence_ids = []
+    run.frozen_paper_ids = []
+    RunWorkspace(data_dir).write_snapshot(run)
+    llm_log = data_dir / "outputs" / "llm_calls" / f"{run.run_id}.jsonl"
+    llm_log.parent.mkdir(parents=True, exist_ok=True)
+    llm_log.write_text('{"model":"qwen-plus","prompt_tokens":12,"completion_tokens":8}\n', encoding="utf-8")
+
+    prepared = module.accept_current_verified(run.run_id, data_dir)
+    manifest = module.freeze_demo_case(prepared.run_id, data_dir, output_root, strict=True)
+
+    assert prepared.citation_frozen is True
+    assert prepared.evidence_frozen is True
+    assert prepared.frozen_paper_ids == ["p_verified"]
+    assert prepared.frozen_evidence_ids == ["e1"]
+    assert manifest["warnings"] == []
+
+
 def _load_freeze_script():
     script_path = Path(__file__).resolve().parents[2] / "scripts" / "freeze_demo_case.py"
     spec = importlib.util.spec_from_file_location("freeze_demo_case", script_path)

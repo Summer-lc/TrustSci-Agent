@@ -57,6 +57,7 @@ make ps
 make demo-candidates
 make freeze-demo RUN_ID=run_xxx
 make freeze-demo-strict RUN_ID=run_xxx
+make freeze-demo-current RUN_ID=run_xxx
 ```
 
 ## Backend Development
