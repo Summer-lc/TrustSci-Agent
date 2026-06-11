@@ -27,6 +27,7 @@ Question
 - 百炼 Qwen client、统一 LLM interface、调用日志。
 - Planner Agent 与 multi-perspective plan。
 - OpenAlex / Crossref / Semantic Scholar / arXiv 多源检索。
+- Literature Board。
 - LiteratureRouter、CitationVerifier、Citation Audit Log。
 - Evidence Ledger、PDF ingest、Browser Worker PDF 下载。
 - Claim Verifier、Literature Miner、knowledge cards。
@@ -46,7 +47,7 @@ Question
 - Hypothesis Arena 还缺 Qwen 驱动的多轮 debate 和 novelty check。
 - Claim Verifier 还缺 Qwen / embedding 语义核验。
 - Citation Verifier 还缺 author/year match、metadata snapshot、cache、撤稿风险。
-- 前端还缺独立 Literature Board、PDF export。
+- 前端还缺 PDF export。
 - Demo case、技术方案 PDF、视频脚本、截图材料还未封版。
 
 ## Phase Summary

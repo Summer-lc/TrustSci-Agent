@@ -32,6 +32,7 @@ import { EvidenceBoard } from "./EvidenceBoard";
 import { ExperimentPlanPanel } from "./ExperimentPlanPanel";
 import { HypothesisArena } from "./HypothesisArena";
 import { KnowledgeCardsPanel } from "./KnowledgeCardsPanel";
+import { LiteratureBoard } from "./LiteratureBoard";
 import { PerspectivePlanPanel } from "./PerspectivePlanPanel";
 import { ReportViewer } from "./ReportViewer";
 import { ResearchConsole } from "./ResearchConsole";
@@ -301,6 +302,7 @@ export function Workbench() {
           <RunTimeline run={run} />
           <WorkspacePanel run={run} />
           <PerspectivePlanPanel run={run} />
+          <LiteratureBoard run={run} />
           <EvidenceBoard
             run={run}
             busy={evidenceBusy}

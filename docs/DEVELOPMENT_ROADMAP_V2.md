@@ -52,6 +52,7 @@ Question
 - Semantic Scholar client，前端可选启用。
 - arXiv client，前端可选启用。
 - LiteratureRouter：OpenAlex / Semantic Scholar / arXiv 统一检索，其中 Semantic Scholar 和 arXiv 均由 run constraints 控制。
+- 前端 Literature Board 展示检索来源、论文元数据、source/pdf 链接和核验状态。
 - CitationVerifier：arXiv ID、Crossref DOI、DataCite DOI、OpenAlex title、Semantic Scholar title、arXiv title 多层核验。
 - Evidence Ledger v2：记录 verification method、confidence、matched source、report eligibility、human decision 和 frozen status。
 - PDF chunk parser 与 run 级 PDF evidence ingest endpoint。
@@ -81,7 +82,7 @@ Question
 - Hypothesis Arena 已有 deterministic reviewer debate / revision v1，但还没有 Qwen 驱动的多轮辩论和 novelty checker。
 - Run Workspace 已有文件化 v1，但还没有从 workspace 自动恢复内存态，也没有 workspace bundle。
 - Human Gate 已有 evidence freeze 和 citation freeze v1；仍缺补搜方向选择、report outline freeze。
-- 前端缺少独立 Literature Board、PDF export。
+- 前端缺少 PDF export。
 - 参赛 demo case、截图材料、技术方案 PDF、视频脚本尚未封版。
 
 ## 3. 阶段总览
@@ -409,6 +410,7 @@ Question
 - Research Console。
 - Run Timeline。
 - Status Strip。
+- Literature Board。
 - Citation status panel。
 - Perspective Plan Panel。
 - Knowledge Cards Panel。
@@ -422,13 +424,10 @@ Question
 
 下一步：
 
-1. 独立 Literature Board。
-2. Claim / Evidence Audit Panel。
-3. Hypothesis select 后的 rebuild feedback。
-4. Report export UX。
-5. Demo 数据固定入口。
-6. 录屏路径打磨。
-7. 移动/窄屏检查。
+1. Report export UX。
+2. Demo 数据固定入口。
+3. 录屏路径打磨。
+4. 移动/窄屏检查。
 
 验收标准：
 

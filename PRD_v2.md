@@ -727,6 +727,7 @@ Reference Design 的 10 个模块不是最终系统模块，而是参考来源�
 - Planner Agent 与 multi-perspective plan。
 - OpenAlex / Crossref / Semantic Scholar / arXiv 客户端。
 - LiteratureRouter 多源统一检索与去重。
+- 前端 Literature Board 展示检索来源、论文元数据、source/pdf 链接和核验状态。
 - CitationVerifier 多层核验。
 - Evidence Ledger v2。
 - PDF chunk parser 与 run 级 PDF evidence ingest。
@@ -754,7 +755,7 @@ Reference Design 的 10 个模块不是最终系统模块，而是参考来源�
 - Literature Miner 已有 knowledge cards v1，但还没有 Qwen 抽取和完整 report outline freeze。
 - Hypothesis Arena 已有 deterministic reviewer debate / revision v1，但还没有 Qwen 驱动的多轮辩论和 novelty checker。
 - Run Workspace 已有文件化 v1，但还不能服务重启后自动恢复内存态。
-- 前端缺少独立 Literature Board、补搜方向、workspace bundle、PDF export。
+- 前端缺少补搜方向、workspace bundle、PDF export。
 - Demo case、截图、视频脚本和 20 页技术方案尚未封版。
 
 ## 16. 暂不纳入 MVP 的能力

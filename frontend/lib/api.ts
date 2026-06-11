@@ -84,11 +84,23 @@ export type ResearchRun = {
   papers: Array<{
     paper_id: string;
     title: string;
+    authors: string[];
     year?: number;
+    publication_date?: string;
     doi?: string;
+    openalex_id?: string;
     source_api?: string;
     semantic_scholar_id?: string;
     arxiv_id?: string;
+    source_url?: string;
+    pdf_url?: string;
+    abstract: string;
+    venue?: string;
+    work_type?: string;
+    cited_by_count?: number;
+    fields_of_study: string[];
+    is_open_access?: boolean;
+    is_retracted: boolean;
     verification_status: string;
     title_match_score?: number;
     verification_method?: string;
