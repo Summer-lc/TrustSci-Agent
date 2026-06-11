@@ -1,4 +1,4 @@
-.PHONY: help setup up dev down logs ps test build freeze-demo pull push
+.PHONY: help setup up dev down logs ps test build demo-candidates freeze-demo freeze-demo-strict pull push
 
 help:
 	@echo "TrustSci-Agent development commands"
@@ -9,7 +9,9 @@ help:
 	@echo "  make logs   - follow compose logs"
 	@echo "  make test   - run backend tests locally"
 	@echo "  make build  - run frontend production build locally"
+	@echo "  make demo-candidates - list demo run readiness checks"
 	@echo "  make freeze-demo RUN_ID=<run_id> - create a submission freeze package"
+	@echo "  make freeze-demo-strict RUN_ID=<run_id> - create a package and fail on warnings"
 	@echo "  make pull   - fetch and pull origin/main"
 	@echo "  make push   - push current branch"
 
@@ -37,9 +39,16 @@ test:
 build:
 	cd frontend && npm run build
 
+demo-candidates:
+	python scripts/freeze_demo_case.py --list-candidates
+
 freeze-demo:
 	@test -n "$(RUN_ID)" || (echo "RUN_ID is required, e.g. make freeze-demo RUN_ID=run_abc123" && exit 1)
 	python scripts/freeze_demo_case.py "$(RUN_ID)"
+
+freeze-demo-strict:
+	@test -n "$(RUN_ID)" || (echo "RUN_ID is required, e.g. make freeze-demo-strict RUN_ID=run_abc123" && exit 1)
+	python scripts/freeze_demo_case.py --strict "$(RUN_ID)"
 
 pull:
 	git fetch origin main --prune

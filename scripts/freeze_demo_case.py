@@ -23,7 +23,7 @@ from app.tools.report_pdf_exporter import export_markdown_pdf  # noqa: E402
 from app.workflows.scientist_workflow import _write_markdown_report  # noqa: E402
 
 
-def freeze_demo_case(run_id: str, data_dir: Path, output_root: Path) -> dict[str, Any]:
+def freeze_demo_case(run_id: str, data_dir: Path, output_root: Path, *, strict: bool = False) -> dict[str, Any]:
     data_dir = data_dir.resolve()
     output_dir = (output_root / run_id).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -33,7 +33,39 @@ def freeze_demo_case(run_id: str, data_dir: Path, output_root: Path) -> dict[str
     manifest = _build_manifest(run, data_dir, output_dir, artifacts)
     _write_json(output_dir / "manifest.json", manifest)
     _write_readme(output_dir / "README.md", run, manifest)
+    if strict and manifest["warnings"]:
+        raise RuntimeError("demo freeze strict checks failed: " + "; ".join(manifest["warnings"]))
     return manifest
+
+
+def list_demo_candidates(data_dir: Path) -> list[dict[str, Any]]:
+    data_dir = data_dir.resolve()
+    candidates = []
+    for snapshot_path in sorted((data_dir / "workspace").glob("*/run.json")):
+        try:
+            run = ResearchRun.model_validate_json(snapshot_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        output_dir = data_dir / "submission" / run.run_id
+        manifest = _build_manifest(run, data_dir, output_dir, _existing_artifacts(run, data_dir))
+        candidates.append(
+            {
+                "run_id": run.run_id,
+                "status": manifest["status"],
+                "question": run.question,
+                "updated_at": run.updated_at.isoformat() if hasattr(run.updated_at, "isoformat") else str(run.updated_at),
+                "papers": manifest["counts"]["papers"],
+                "verified_papers": manifest["counts"]["verified_papers"],
+                "evidence": manifest["counts"]["evidence"],
+                "report_generated": manifest["checks"]["report_generated"],
+                "citation_frozen": manifest["checks"]["citation_frozen"],
+                "evidence_frozen": manifest["checks"]["evidence_frozen"],
+                "qwen_log_present": manifest["checks"]["qwen_log_present"],
+                "ready": not manifest["warnings"],
+                "warnings": manifest["warnings"],
+            }
+        )
+    return sorted(candidates, key=lambda item: str(item.get("updated_at") or ""), reverse=True)
 
 
 def _load_run_snapshot(data_dir: Path, run_id: str) -> ResearchRun:
@@ -80,6 +112,19 @@ def _collect_artifacts(run: ResearchRun, data_dir: Path, output_dir: Path) -> di
         shutil.copy2(llm_log, target_log)
         artifacts["qwen_llm_log"] = _relative(target_log, output_dir)
 
+    return artifacts
+
+
+def _existing_artifacts(run: ResearchRun, data_dir: Path) -> dict[str, str]:
+    artifacts: dict[str, str] = {}
+    if (data_dir / "outputs" / "reports" / f"{run.run_id}.md").exists():
+        artifacts["report_markdown"] = f"outputs/reports/{run.run_id}.md"
+    if (data_dir / "outputs" / "reports" / f"{run.run_id}.pdf").exists():
+        artifacts["report_pdf"] = f"outputs/reports/{run.run_id}.pdf"
+    if (data_dir / "workspace" / run.run_id).exists():
+        artifacts["workspace_bundle"] = f"workspace/{run.run_id}"
+    if (data_dir / "outputs" / "llm_calls" / f"{run.run_id}.jsonl").exists():
+        artifacts["qwen_llm_log"] = f"outputs/llm_calls/{run.run_id}.jsonl"
     return artifacts
 
 
@@ -189,12 +234,19 @@ def _relative(path: Path, root: Path) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Freeze a TrustSci-Agent run for demo submission.")
-    parser.add_argument("run_id", help="Run id, for example run_123abc.")
+    parser.add_argument("run_id", nargs="?", help="Run id, for example run_123abc.")
     parser.add_argument("--data-dir", default="data", type=Path, help="TrustSci-Agent DATA_DIR.")
     parser.add_argument("--output-root", default=Path("data/submission"), type=Path, help="Freeze output root.")
+    parser.add_argument("--strict", action="store_true", help="Fail if the run is not final-submission ready.")
+    parser.add_argument("--list-candidates", action="store_true", help="List workspace snapshots and readiness checks.")
     args = parser.parse_args()
 
-    manifest = freeze_demo_case(args.run_id, args.data_dir, args.output_root)
+    if args.list_candidates:
+        print(json.dumps(list_demo_candidates(args.data_dir), ensure_ascii=False, indent=2))
+        return 0
+    if not args.run_id:
+        parser.error("run_id is required unless --list-candidates is used")
+    manifest = freeze_demo_case(args.run_id, args.data_dir, args.output_root, strict=args.strict)
     print(json.dumps({"run_id": args.run_id, "output_dir": manifest["output_dir"]}, ensure_ascii=False))
     return 0
 

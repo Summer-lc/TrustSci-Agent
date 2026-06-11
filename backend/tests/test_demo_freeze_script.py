@@ -1,6 +1,8 @@
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 from app.agents.report_writer_agent import ReportWriterAgent
 from app.schemas.claim import ClaimAuditReport
 from app.schemas.citation import CitationVerificationReport
@@ -37,6 +39,23 @@ def test_freeze_demo_case_generates_submission_package(tmp_path: Path) -> None:
     assert (package_dir / manifest["artifacts"]["report_pdf"]).read_bytes().startswith(b"%PDF")
     assert (package_dir / manifest["artifacts"]["workspace_bundle"]).read_bytes().startswith(b"PK")
     assert (package_dir / manifest["artifacts"]["qwen_llm_log"]).exists()
+
+    candidates = module.list_demo_candidates(data_dir)
+    candidate = next(item for item in candidates if item["run_id"] == run.run_id)
+    assert candidate["ready"] is True
+    assert candidate["warnings"] == []
+
+
+def test_freeze_demo_case_strict_rejects_unfrozen_run(tmp_path: Path) -> None:
+    module = _load_freeze_script()
+    data_dir = tmp_path / "data"
+    output_root = tmp_path / "submission"
+    run = _demo_run()
+    run.evidence_frozen = False
+    RunWorkspace(data_dir).write_snapshot(run)
+
+    with pytest.raises(RuntimeError, match="Evidence set is not frozen"):
+        module.freeze_demo_case(run.run_id, data_dir, output_root, strict=True)
 
 
 def _load_freeze_script():

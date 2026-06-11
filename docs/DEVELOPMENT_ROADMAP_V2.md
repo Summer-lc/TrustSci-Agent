@@ -450,7 +450,7 @@ Question
    - 固定输入问题。
    - 固定 run artifact。
    - 固定 final report。
-   - 已完成 v1：`make freeze-demo RUN_ID=...` 生成 manifest、报告、workspace bundle 和 Qwen log 包。
+   - 已完成 v1：`make demo-candidates` 检查候选 run，`make freeze-demo-strict RUN_ID=...` 生成 manifest、报告、workspace bundle 和 Qwen log 包。
 2. 技术方案 PDF：
    - 控制在 20 页以内。
    - 系统架构。

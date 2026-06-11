@@ -20,8 +20,22 @@ Use this workflow when a run is ready to become the fixed contest demo case.
 
 ## Freeze Command
 
+List candidate runs and their readiness checks:
+
+```bash
+make demo-candidates
+```
+
+Create a draft package, allowing warnings:
+
 ```bash
 make freeze-demo RUN_ID=run_xxx
+```
+
+Create a final package and fail if evidence/citations/report/logs are not ready:
+
+```bash
+make freeze-demo-strict RUN_ID=run_xxx
 ```
 
 The command creates:
@@ -38,6 +52,7 @@ data/submission/{run_id}/
 ```
 
 If Qwen/Bailian logging is not available, the manifest keeps the freeze package usable but records a warning.
+For final contest packaging, prefer the strict command and resolve all warnings before recording screenshots or video.
 
 ## Submission Use
 
