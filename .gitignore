@@ -20,3 +20,4 @@ data/submission/
 data/workspace/
 .references/
 *.log
+.codegraph/
