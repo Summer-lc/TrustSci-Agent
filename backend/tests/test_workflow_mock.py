@@ -174,3 +174,64 @@ async def test_workflow_uses_semantic_scholar_when_enabled(monkeypatch) -> None:
     assert result.status == "completed"
     assert {paper.source_api for paper in result.papers} == {"openalex", "semantic_scholar"}
     assert len(result.papers) == 2
+
+
+@pytest.mark.asyncio
+async def test_guided_workflow_pauses_for_citation_and_evidence_review(monkeypatch) -> None:
+    settings = Settings(dashscope_api_key="", max_papers=1)
+    workflow = ScientistWorkflow(settings)
+
+    async def fake_search(queries, *, max_papers: int, enable_semantic_scholar: bool = False, enable_arxiv: bool = True):
+        return [
+            Paper(
+                paper_id="paper_001",
+                title="Solid-state electrolytes for lithium batteries",
+                doi="10.1038/example",
+                abstract="Solid-state electrolyte studies connect structure and ionic transport.",
+                verification_status="candidate",
+                verified_by=["openalex"],
+            )
+        ]
+
+    async def fake_verify_many(papers, *, enable_semantic_scholar: bool = False):
+        for paper in papers:
+            paper.verification_status = "verified"
+            paper.verification_method = "crossref_doi"
+            paper.verification_confidence = 0.95
+            paper.report_eligible = True
+        return papers, CitationVerificationReport(total=len(papers), verified=len(papers), integrity_score=1)
+
+    monkeypatch.setattr(workflow.literature_router, "search", fake_search)
+    monkeypatch.setattr(workflow.citation_verifier, "verify_many", fake_verify_many)
+
+    run = ResearchRun(
+        domain="energy_materials",
+        question="Generate a guided solid-state electrolyte hypothesis.",
+        constraints=ResearchConstraints(max_papers=1, workflow_mode="guided"),
+    )
+
+    first_pause = await workflow.run(run)
+
+    assert first_pause.status == "paused"
+    assert first_pause.current_stage == "awaiting_citation_review"
+    assert first_pause.report is None
+
+    first_pause.citation_frozen = True
+    first_pause.frozen_paper_ids = ["paper_001"]
+    second_pause = await workflow.continue_run(first_pause)
+
+    assert second_pause.status == "paused"
+    assert second_pause.current_stage == "awaiting_evidence_review"
+    assert second_pause.citation_frozen is True
+    assert second_pause.frozen_paper_ids == ["paper_001"]
+    assert second_pause.evidence
+    assert second_pause.report is None
+
+    second_pause.evidence_frozen = True
+    second_pause.frozen_evidence_ids = [second_pause.evidence[0].evidence_id]
+    completed = await workflow.continue_run(second_pause)
+
+    assert completed.status == "completed"
+    assert completed.report is not None
+    assert completed.claim_audit is not None
+    assert completed.current_stage == "completed"

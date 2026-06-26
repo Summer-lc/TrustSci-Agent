@@ -17,18 +17,18 @@ export function CitationVerifier({ run, busy = false, onDecision, onFreeze, onUn
   return (
     <section className="panel span-6">
       <div className="panel-heading">
-        <h2><ShieldCheck size={16} /> Citation Verifier</h2>
+        <h2><ShieldCheck size={16} /> 引用核验 / Citation Verifier</h2>
         <div className="actions">
           <span className={`badge ${run?.citation_frozen ? "good" : "warn"}`}>
-            {run?.citation_frozen ? `frozen ${frozenCount}` : "open citations"}
+            {run?.citation_frozen ? `已冻结 / frozen ${frozenCount}` : "待冻结 / open"}
           </span>
           {run?.citation_frozen ? (
             <button className="secondary" onClick={onUnfreeze} disabled={busy || !run}>
-              <RotateCcw size={14} /> 解冻
+              <RotateCcw size={14} /> 解冻 / Unfreeze
             </button>
           ) : (
             <button className="secondary" onClick={onFreeze} disabled={busy || !run || !run.papers.length}>
-              <Lock size={14} /> 冻结
+              <Lock size={14} /> 冻结 / Freeze
             </button>
           )}
         </div>
@@ -61,7 +61,7 @@ export function CitationVerifier({ run, busy = false, onDecision, onFreeze, onUn
               <span className="badge">{paper.verification_status}</span>
               <button
                 className="icon-button"
-                title="Approve citation"
+                title="接受引用 / Approve citation"
                 onClick={() => onDecision(paper.paper_id, "accepted")}
                 disabled={busy || paper.human_decision === "accepted" || paper.verification_status !== "verified"}
               >
@@ -69,7 +69,7 @@ export function CitationVerifier({ run, busy = false, onDecision, onFreeze, onUn
               </button>
               <button
                 className="icon-button danger"
-                title="Reject citation"
+                title="拒绝引用 / Reject citation"
                 onClick={() => onDecision(paper.paper_id, "rejected")}
                 disabled={busy || paper.human_decision === "rejected"}
               >
@@ -78,7 +78,7 @@ export function CitationVerifier({ run, busy = false, onDecision, onFreeze, onUn
             </div>
           </article>
         ))}
-        {!run?.papers.length && <p className="muted">暂无候选论文</p>}
+        {!run?.papers.length && <p className="muted">暂无候选论文 / No candidate papers yet.</p>}
       </div>
     </section>
   );

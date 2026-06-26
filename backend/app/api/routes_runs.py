@@ -77,6 +77,18 @@ async def run_sync(run_id: str) -> ResearchRun:
     return await ScientistWorkflow(get_settings()).run(run)
 
 
+@router.post("/{run_id}/continue", response_model=ResearchRun)
+async def continue_run(run_id: str) -> ResearchRun:
+    run = run_store.get(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="run not found")
+    if run.current_stage == "awaiting_citation_review" and not run.citation_frozen:
+        raise HTTPException(status_code=400, detail="freeze citations before continuing")
+    if run.current_stage == "awaiting_evidence_review" and not run.evidence_frozen:
+        raise HTTPException(status_code=400, detail="freeze evidence before continuing")
+    return await ScientistWorkflow(get_settings()).continue_run(run)
+
+
 @router.get("/{run_id}/papers", response_model=list[Paper])
 async def get_papers(run_id: str) -> list[Paper]:
     return _must_get_run(run_id).papers

@@ -1,5 +1,7 @@
 import re
+import json
 
+from app.llm.interface import LLMClient, LLMRequest
 from app.schemas.claim import ClaimAuditItem, ClaimAuditReport
 from app.schemas.evidence import EvidenceItem
 from app.schemas.hypothesis import Hypothesis
@@ -7,7 +9,57 @@ from app.schemas.report import ResearchReport
 from app.schemas.run import ResearchRun
 
 
+SYSTEM_PROMPT = """You are the Claim Verifier Agent for TrustSci-Agent.
+Audit report claims against the provided eligible evidence ledger.
+Return JSON only. Do not invent evidence ids, citations, papers, datasets, or new claims.
+
+Required JSON shape:
+{
+  "claim_audits": [
+    {
+      "claim_id": "claim_001",
+      "status": "supported | weakly_supported | unsupported",
+      "confidence": 0.0,
+      "matched_evidence_ids": ["existing evidence ids only"],
+      "reason": "brief sentence-level support judgement"
+    }
+  ]
+}
+
+Rules:
+- Only judge the supplied claim_id values.
+- supported means the evidence directly supports the specific sentence.
+- weakly_supported means the evidence is relevant but incomplete, indirect, or too broad.
+- unsupported means no eligible evidence supports the sentence, or the sentence describes unverified results.
+- If a claim has no valid matched_evidence_ids, its status must be unsupported.
+"""
+
+
 class ClaimVerifier:
+    def __init__(self, llm: LLMClient | None = None) -> None:
+        self.llm = llm
+
+    async def arun(
+        self,
+        run: ResearchRun,
+        report: ResearchReport,
+        evidence: list[EvidenceItem],
+        hypothesis: Hypothesis | None,
+    ) -> ClaimAuditReport:
+        fallback = self.audit(run, report, evidence, hypothesis)
+        if self.llm is None:
+            return fallback
+        response = await self.llm.complete(
+            LLMRequest(
+                system=SYSTEM_PROMPT,
+                user=_build_user_prompt(fallback.items, evidence),
+                fallback={"claim_audits": [item.model_dump() for item in fallback.items]},
+                run_id=run.run_id,
+                agent="claim_verifier",
+            )
+        )
+        return _normalize_qwen_audit(response.content, fallback, evidence)
+
     def audit(
         self,
         run: ResearchRun,
@@ -52,15 +104,26 @@ def _candidate_claims(
         report.rationale,
         report.results,
     ]
-    raw.extend(report.methods[:4])
+    raw.extend(report.technical_details[:3])
+    raw.extend(report.methods[:5])
+    raw.extend(
+        [
+            report.source,
+            report.target,
+            report.experiments.expected_results,
+            *report.experiments.experiment_steps[:4],
+        ]
+    )
     claims: list[str] = []
     for value in raw:
         if not value:
             continue
-        text = _clean(str(value))
-        if len(text) < 24:
-            continue
-        claims.append(text[:420])
+        for sentence in _claim_sentences(str(value)):
+            if len(sentence) < 24:
+                continue
+            if _is_validation_statement(sentence):
+                continue
+            claims.append(sentence[:420])
     return _dedupe(claims)[:10]
 
 
@@ -138,6 +201,106 @@ def _report(items: list[ClaimAuditItem]) -> ClaimAuditReport:
     )
 
 
+def _build_user_prompt(items: list[ClaimAuditItem], evidence: list[EvidenceItem]) -> str:
+    eligible_evidence = [item for item in evidence if item.eligible_for_report]
+    payload = {
+        "claims": [
+            {
+                "claim_id": item.claim_id,
+                "claim": item.claim,
+                "fallback_status": item.status,
+                "fallback_matched_evidence_ids": item.matched_evidence_ids,
+            }
+            for item in items
+        ],
+        "eligible_evidence": [
+            {
+                "evidence_id": item.evidence_id,
+                "paper_id": item.paper_id,
+                "claim": item.claim,
+                "quote_or_summary": item.quote_or_summary,
+                "source_title": item.source_title,
+                "verified": item.verified,
+                "eligible_for_report": item.eligible_for_report,
+            }
+            for item in eligible_evidence[:24]
+        ],
+        "instructions": [
+            "Judge each claim sentence against eligible evidence only.",
+            "Use supported only for direct support.",
+            "Use weakly_supported for relevant but partial support.",
+            "Use unsupported for unverified result claims, missing evidence, or broad statements not tied to evidence.",
+        ],
+    }
+    return json.dumps(payload, ensure_ascii=False, indent=2)
+
+
+def _normalize_qwen_audit(
+    content: object,
+    fallback: ClaimAuditReport,
+    evidence: list[EvidenceItem],
+) -> ClaimAuditReport:
+    if not isinstance(content, dict) or not isinstance(content.get("claim_audits"), list):
+        return fallback
+    fallback_by_id = {item.claim_id: item for item in fallback.items}
+    evidence_ids = {
+        item.evidence_id
+        for item in evidence
+        if item.eligible_for_report and item.verified
+    }
+    qwen_by_id = {
+        str(raw.get("claim_id")): raw
+        for raw in content["claim_audits"]
+        if isinstance(raw, dict) and raw.get("claim_id")
+    }
+    items: list[ClaimAuditItem] = []
+    for fallback_item in fallback.items:
+        raw = qwen_by_id.get(fallback_item.claim_id)
+        if raw is None:
+            items.append(fallback_item)
+            continue
+        matched_ids = _known_ids(raw.get("matched_evidence_ids"), evidence_ids)
+        status = _qwen_status(raw.get("status"))
+        if not matched_ids:
+            status = "unsupported"
+        confidence = _confidence(raw.get("confidence"))
+        if status == "unsupported":
+            confidence = min(confidence, 0.09)
+        elif status == "weakly_supported":
+            confidence = min(max(confidence, 0.1), 0.69)
+        else:
+            confidence = max(confidence, 0.7)
+        items.append(
+            ClaimAuditItem(
+                claim_id=fallback_item.claim_id,
+                claim=fallback_item.claim,
+                status=status,
+                confidence=confidence,
+                matched_evidence_ids=matched_ids,
+                reason=_clean(str(raw.get("reason") or "")) or _reason(status, []),
+            )
+        )
+    return _report(items)
+
+
+def _claim_sentences(text: str) -> list[str]:
+    text = _clean(text)
+    if not text:
+        return []
+    parts = re.split(r"(?<=[.!?。！？])\s+|\n+", text)
+    sentences = [_clean(part) for part in parts if _clean(part)]
+    if not sentences:
+        return [text]
+    expanded: list[str] = []
+    for sentence in sentences:
+        if len(sentence) <= 420:
+            expanded.append(sentence)
+            continue
+        clauses = re.split(r";\s+|；\s+|\.\s+", sentence)
+        expanded.extend(_clean(clause) for clause in clauses if len(_clean(clause)) >= 24)
+    return expanded or [text[:420]]
+
+
 def _terms(text: str) -> set[str]:
     words = re.findall(r"[a-zA-Z][a-zA-Z0-9_-]{2,}", text.lower())
     return {word for word in words if word not in _STOPWORDS}
@@ -145,6 +308,45 @@ def _terms(text: str) -> set[str]:
 
 def _clean(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
+
+
+def _is_validation_statement(text: str) -> bool:
+    lowered = text.lower().strip()
+    return lowered.startswith("to validate:") or any(
+        marker in lowered
+        for marker in [
+            "verification pending",
+            "requires validation",
+            "require validation",
+            "will test",
+            "we propose",
+            "proposed experiment",
+            "planned validation",
+            "not a completed discovery",
+            "not as an already-proven",
+        ]
+    )
+
+
+def _known_ids(value: object, allowed: set[str]) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in [str(raw).strip() for raw in value] if item in allowed]
+
+
+def _qwen_status(value: object) -> str:
+    status = str(value or "").strip().lower()
+    if status in {"supported", "weakly_supported", "unsupported"}:
+        return status
+    return "unsupported"
+
+
+def _confidence(value: object) -> float:
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    return max(0.0, min(1.0, score))
 
 
 def _dedupe(values: list[str]) -> list[str]:

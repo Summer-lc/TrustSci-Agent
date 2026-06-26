@@ -6,6 +6,7 @@ import {
   BaselineResultCard,
   BrowserCaptureResult,
   captureBrowserPage,
+  continueRun,
   createRun,
   DatasetProfile,
   decidePaper,
@@ -16,12 +17,10 @@ import {
   getPublicConfig,
   getRun,
   ingestPdfEvidence,
-  listRestorableWorkspaces,
   listRuns,
   PublicConfig,
+  rebuildReport,
   ResearchRun,
-  RestorableWorkspace,
-  restoreWorkspace,
   runBaseline,
   selectHypothesis,
   startRun,
@@ -35,10 +34,10 @@ import { EvidenceBoard } from "./EvidenceBoard";
 import { ExperimentPlanPanel } from "./ExperimentPlanPanel";
 import { HypothesisArena } from "./HypothesisArena";
 import { KnowledgeCardsPanel } from "./KnowledgeCardsPanel";
-import { LiteratureBoard } from "./LiteratureBoard";
 import { PerspectivePlanPanel } from "./PerspectivePlanPanel";
 import { ReportViewer } from "./ReportViewer";
 import { ResearchConsole } from "./ResearchConsole";
+import { ReviewChecklistPanel } from "./ReviewChecklistPanel";
 import { RunHistory } from "./RunHistory";
 import { RunTimeline } from "./RunTimeline";
 import { ScientificDataPanel } from "./ScientificDataPanel";
@@ -52,11 +51,11 @@ export function Workbench() {
   const [question, setQuestion] = useState(defaultQuestion);
   const [domain, setDomain] = useState("energy_materials");
   const [maxPapers, setMaxPapers] = useState(6);
+  const [workflowMode, setWorkflowMode] = useState<"auto" | "guided">("auto");
   const [enableSemanticScholar, setEnableSemanticScholar] = useState(false);
   const [enableArxiv, setEnableArxiv] = useState(true);
   const [run, setRun] = useState<ResearchRun | null>(null);
   const [runs, setRuns] = useState<ResearchRun[]>([]);
-  const [workspaces, setWorkspaces] = useState<RestorableWorkspace[]>([]);
   const [config, setConfig] = useState<PublicConfig | null>(null);
   const [profiles, setProfiles] = useState<DatasetProfile[]>([]);
   const [baseline, setBaseline] = useState<BaselineResultCard | null>(null);
@@ -69,7 +68,7 @@ export function Workbench() {
   const [evidenceBusy, setEvidenceBusy] = useState(false);
   const [citationBusy, setCitationBusy] = useState(false);
   const [hypothesisBusy, setHypothesisBusy] = useState(false);
-  const [restoreBusy, setRestoreBusy] = useState(false);
+  const [reportBusy, setReportBusy] = useState(false);
 
   useEffect(() => {
     void loadInitialData();
@@ -90,18 +89,16 @@ export function Workbench() {
   }, [run?.run_id, run?.status]);
 
   async function loadInitialData() {
-    const [nextConfig, nextProfiles, nextBaseline, nextRuns, nextWorkspaces] = await Promise.all([
+    const [nextConfig, nextProfiles, nextBaseline, nextRuns] = await Promise.all([
       getPublicConfig().catch(() => null),
       getDataProfiles().catch(() => []),
       runBaseline().catch(() => null),
-      listRuns().catch(() => []),
-      listRestorableWorkspaces().catch(() => [])
+      listRuns().catch(() => [])
     ]);
     setConfig(nextConfig);
     setProfiles(nextProfiles);
     setBaseline(nextBaseline);
     setRuns(nextRuns);
-    setWorkspaces(nextWorkspaces);
     if (nextRuns[0]) setRun(nextRuns[0]);
   }
 
@@ -111,41 +108,19 @@ export function Workbench() {
     return nextRuns;
   }
 
-  async function refreshWorkspaces() {
-    const nextWorkspaces = await listRestorableWorkspaces();
-    setWorkspaces(nextWorkspaces);
-    return nextWorkspaces;
-  }
-
   async function handleStart() {
     setBusy(true);
     setError("");
     try {
-      const created = await createRun(question, domain, maxPapers, enableSemanticScholar, enableArxiv);
+      const created = await createRun(question, domain, maxPapers, enableSemanticScholar, enableArxiv, workflowMode);
       setRun(created);
       const started = await startRun(created.run_id);
       setRun(started);
       await refreshRuns();
-      await refreshWorkspaces();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setBusy(false);
-    }
-  }
-
-  async function handleRestore(runId: string) {
-    setRestoreBusy(true);
-    setError("");
-    try {
-      const restored = await restoreWorkspace(runId);
-      setRun(restored);
-      await refreshRuns();
-      await refreshWorkspaces();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Workspace restore failed");
-    } finally {
-      setRestoreBusy(false);
     }
   }
 
@@ -288,6 +263,36 @@ export function Workbench() {
     }
   }
 
+  async function handleRebuildReport() {
+    if (!run) return;
+    setReportBusy(true);
+    setError("");
+    try {
+      const next = await rebuildReport(run.run_id);
+      setRun(next);
+      await refreshRuns();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Report rebuild failed");
+    } finally {
+      setReportBusy(false);
+    }
+  }
+
+  async function handleContinueRun() {
+    if (!run) return;
+    setReportBusy(true);
+    setError("");
+    try {
+      const next = await continueRun(run.run_id);
+      setRun(next);
+      await refreshRuns();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Guided continue failed");
+    } finally {
+      setReportBusy(false);
+    }
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -299,6 +304,7 @@ export function Workbench() {
           question={question}
           domain={domain}
           maxPapers={maxPapers}
+          workflowMode={workflowMode}
           enableSemanticScholar={enableSemanticScholar}
           enableArxiv={enableArxiv}
           semanticScholarConfigured={Boolean(config?.semantic_scholar_configured)}
@@ -308,25 +314,20 @@ export function Workbench() {
           onQuestionChange={setQuestion}
           onDomainChange={setDomain}
           onMaxPapersChange={setMaxPapers}
+          onWorkflowModeChange={setWorkflowMode}
           onEnableSemanticScholarChange={setEnableSemanticScholar}
           onEnableArxivChange={setEnableArxiv}
           onStart={handleStart}
           onRefresh={refreshCurrentRun}
         />
-        <RunHistory
-          runs={runs}
-          workspaces={workspaces}
-          selectedRunId={run?.run_id}
-          restoring={restoreBusy}
-          onSelect={setRun}
-          onRestore={handleRestore}
-        />
+        <RunHistory runs={runs} selectedRunId={run?.run_id} onSelect={setRun} />
+        <RunTimeline run={run} compact />
       </aside>
 
       <section className="content">
         <div className="topbar">
           <div className="title-block">
-            <h1>可信多智能体 AI Scientist 工作台</h1>
+            <h1>可信多智能体 AI Scientist 工作台 / Trustworthy AI Scientist Workbench</h1>
             <p>{run?.question || question}</p>
           </div>
           <span className="badge">{run ? `${run.status} / ${run.current_stage}` : "idle"}</span>
@@ -335,19 +336,12 @@ export function Workbench() {
         <StatusStrip config={config} run={run} />
 
         <div className="grid">
-          <RunTimeline run={run} />
-          <WorkspacePanel run={run} />
-          <PerspectivePlanPanel run={run} />
-          <LiteratureBoard run={run} />
-          <EvidenceBoard
+          <ReviewChecklistPanel
             run={run}
-            busy={evidenceBusy}
-            onDecision={handleEvidenceDecision}
-            onFreeze={handleFreezeEvidence}
-            onUnfreeze={handleUnfreezeEvidence}
+            busy={reportBusy}
+            onContinueRun={handleContinueRun}
+            onRebuildReport={handleRebuildReport}
           />
-          <KnowledgeCardsPanel run={run} />
-          <ClaimAuditPanel run={run} />
           <CitationVerifier
             run={run}
             busy={citationBusy}
@@ -355,6 +349,17 @@ export function Workbench() {
             onFreeze={handleFreezeCitations}
             onUnfreeze={handleUnfreezeCitations}
           />
+          <EvidenceBoard
+            run={run}
+            busy={evidenceBusy}
+            onDecision={handleEvidenceDecision}
+            onFreeze={handleFreezeEvidence}
+            onUnfreeze={handleUnfreezeEvidence}
+          />
+          <ClaimAuditPanel run={run} />
+          <ReportViewer run={run} />
+          <PerspectivePlanPanel run={run} />
+          <KnowledgeCardsPanel run={run} />
           <ScientificDataPanel run={run} profiles={profiles} baseline={baseline} />
           <HypothesisArena run={run} busy={hypothesisBusy} onSelect={handleSelectHypothesis} />
           <ExperimentPlanPanel run={run} />
@@ -368,7 +373,7 @@ export function Workbench() {
             onCapture={handleCapture}
             onIngestPdf={handleIngestPdf}
           />
-          <ReportViewer run={run} />
+          <WorkspacePanel run={run} />
         </div>
       </section>
     </main>

@@ -53,9 +53,18 @@ class LiteratureRouter:
                 stats[source] += len(papers)
 
         deduped = _deduplicate(candidates)
-        deduped.sort(key=lambda paper: (paper.cited_by_count or 0, paper.year or 0), reverse=True)
+        relevant = _filter_relevant(deduped, cleaned_queries)
+        ranked = relevant if relevant else deduped
+        ranked.sort(
+            key=lambda paper: (
+                _relevance_score(paper, cleaned_queries),
+                paper.cited_by_count or 0,
+                paper.year or 0,
+            ),
+            reverse=True,
+        )
         self.last_source_stats = {source: count for source, count in stats.items() if count > 0}
-        return deduped[:max_papers]
+        return ranked[:max_papers]
 
     async def _search_source(self, source: str, query: str, limit: int) -> list[Paper]:
         try:
@@ -142,6 +151,37 @@ def _rank(paper: Paper) -> tuple[int, int, int]:
     return (paper.cited_by_count or 0, paper.year or 0, identifier_score)
 
 
+def _filter_relevant(papers: list[Paper], queries: Sequence[str]) -> list[Paper]:
+    terms = _query_terms(queries)
+    if len(terms) < 3:
+        return papers
+    return [paper for paper in papers if _relevance_score(paper, queries) > 0]
+
+
+def _relevance_score(paper: Paper, queries: Sequence[str]) -> int:
+    terms = _query_terms(queries)
+    if len(terms) < 3:
+        return 1
+    text = _paper_text(paper)
+    return sum(1 for term in terms if term in text)
+
+
+def _paper_text(paper: Paper) -> str:
+    return " ".join(
+        [
+            paper.title or "",
+            paper.abstract or "",
+            paper.venue or "",
+        ]
+    ).lower()
+
+
+def _query_terms(queries: Sequence[str]) -> set[str]:
+    text = " ".join(queries).lower()
+    words = re.findall(r"[a-z][a-z0-9-]{3,}", text)
+    return {word.strip("-") for word in words if word not in _QUERY_STOPWORDS}
+
+
 def _norm_doi(value: str) -> str:
     doi = value.strip().lower()
     for prefix in ("https://doi.org/", "http://doi.org/", "doi:"):
@@ -157,3 +197,33 @@ def _norm_arxiv_id(value: str) -> str:
 def _norm_title(value: str) -> str:
     text = re.sub(r"[^a-z0-9\s]", "", value.lower())
     return re.sub(r"\s+", " ", text).strip()
+
+
+_QUERY_STOPWORDS = {
+    "based",
+    "baseline",
+    "bounded",
+    "candidate",
+    "data",
+    "database",
+    "dataset",
+    "datasets",
+    "design",
+    "evidence",
+    "experiment",
+    "generate",
+    "hypothesis",
+    "literature",
+    "materials",
+    "mechanism",
+    "open",
+    "plan",
+    "property",
+    "recent",
+    "research",
+    "review",
+    "source",
+    "study",
+    "verifiable",
+    "with",
+}

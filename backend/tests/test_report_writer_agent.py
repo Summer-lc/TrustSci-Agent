@@ -79,6 +79,46 @@ def test_report_writer_marks_results_pending_without_verified_inputs() -> None:
     assert any("p_unverified: candidate" in line for line in report.citation_audit_log)
 
 
+def test_report_writer_fallback_outputs_clean_bilingual_text() -> None:
+    run = ResearchRun(
+        domain="energy_materials",
+        question="Generate a bilingual trustworthy report.",
+        constraints=ResearchConstraints(max_papers=1),
+    )
+    report = ReportWriterAgent().run(
+        run,
+        _hypothesis(),
+        _experiment(),
+        [_evidence()],
+        [
+            Paper(
+                paper_id="p_verified",
+                title="Verified solid electrolyte paper",
+                verification_status="verified",
+                report_eligible=True,
+            )
+        ],
+        [_knowledge_card()],
+        [_data_profile()],
+        _baseline_card(),
+    )
+
+    combined = "\n".join(
+        [
+            report.problem_statement,
+            report.rationale,
+            report.paper_abstract,
+            report.results,
+            *report.technical_details,
+            *report.methods,
+        ]
+    )
+    assert "中文翻译：" in combined
+    assert "鐩" not in combined
+    assert "绯荤粺" not in combined
+    assert "鍙" not in combined
+
+
 def test_report_writer_respects_frozen_evidence_set() -> None:
     run = ResearchRun(
         domain="energy_materials",

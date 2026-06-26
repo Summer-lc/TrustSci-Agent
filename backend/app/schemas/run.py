@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
@@ -23,6 +23,7 @@ class ResearchConstraints(BaseModel):
     enable_browser_worker: bool = False
     enable_semantic_scholar: bool = False
     enable_arxiv: bool = True
+    workflow_mode: Literal["auto", "guided"] = "auto"
 
 
 class ResearchRunCreate(BaseModel):

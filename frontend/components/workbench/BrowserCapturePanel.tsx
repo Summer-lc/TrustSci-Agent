@@ -22,12 +22,12 @@ export function BrowserCapturePanel({
 }) {
   return (
     <section className="panel span-6">
-      <h2><Globe size={16} /> Browser Capture</h2>
+      <h2><Globe size={16} /> 浏览器采集 / Browser Capture</h2>
       <div className="inline-form">
         <input className="input" value={url} onChange={(event) => onUrlChange(event.target.value)} />
         <button className="secondary" onClick={onCapture} disabled={busy}>
           {busy ? <RefreshCw size={15} /> : <Globe size={15} />}
-          Capture
+          采集 / Capture
         </button>
       </div>
       {error && <p className="muted warn-text">{error}</p>}
@@ -43,7 +43,7 @@ export function BrowserCapturePanel({
               <div className="item-meta">{String(pdf.path || pdf.url || "PDF")}</div>
               {"path" in pdf && typeof pdf.path === "string" && (
                 <button className="secondary" onClick={() => onIngestPdf(pdf.path as string)} disabled={!canIngestPdf}>
-                  入账 Evidence
+                  入账证据 / Ingest
                 </button>
               )}
             </div>

@@ -38,6 +38,7 @@ For day-to-day development on Linux or Windows WSL2:
 ```bash
 cp .env.example .env
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+docker compose up --build
 ```
 
 Or use the Makefile:

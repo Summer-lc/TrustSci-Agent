@@ -11,7 +11,7 @@ export function HypothesisArena({ run, busy = false, onSelect }: Props) {
   return (
     <section className="panel span-6">
       <div className="panel-heading">
-        <h2><FlaskConical size={16} /> Hypothesis Arena</h2>
+        <h2><FlaskConical size={16} /> 假设评审 / Hypothesis Arena</h2>
         <span className="badge">{run?.hypotheses.length || 0} candidates</span>
       </div>
       <div className="list">
@@ -50,12 +50,12 @@ export function HypothesisArena({ run, busy = false, onSelect }: Props) {
                 onClick={() => onSelect(hypothesis.hypothesis_id)}
                 disabled={busy || hypothesis.selected}
               >
-                <CheckCircle2 size={14} /> 选择
+                <CheckCircle2 size={14} /> 选择 / Select
               </button>
             </div>
           </article>
         ))}
-        {!run?.hypotheses.length && <p className="muted">暂无候选假设</p>}
+        {!run?.hypotheses.length && <p className="muted">暂无候选假设 / No candidate hypotheses yet.</p>}
       </div>
     </section>
   );

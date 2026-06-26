@@ -94,3 +94,47 @@ async def test_literature_router_keeps_semantic_scholar_optional() -> None:
     assert openalex.calls
     assert arxiv.calls
     assert semantic.calls == []
+
+
+@pytest.mark.asyncio
+async def test_literature_router_filters_irrelevant_high_citation_results() -> None:
+    openalex = FakeClient(
+        "openalex",
+        [
+            Paper(
+                paper_id="W_irrelevant",
+                title="Web Survey Methodology",
+                abstract="A social science survey methods handbook.",
+                cited_by_count=5000,
+                source_api="openalex",
+                verified_by=["openalex"],
+            ),
+            Paper(
+                paper_id="W_relevant",
+                title="Solid-state electrolyte ionic conductivity mechanisms",
+                abstract="Solid electrolyte studies discuss lithium ion conductivity and transport pathways.",
+                cited_by_count=50,
+                source_api="openalex",
+                verified_by=["openalex"],
+            ),
+        ],
+    )
+    semantic = FakeClient("semantic_scholar", [])
+    arxiv = FakeClient("arxiv", [])
+    router = LiteratureRouter(
+        Settings(),
+        openalex=openalex,  # type: ignore[arg-type]
+        semantic_scholar=semantic,  # type: ignore[arg-type]
+        arxiv=arxiv,  # type: ignore[arg-type]
+    )
+
+    papers = await router.search(
+        [
+            "solid-state electrolyte ionic conductivity mechanism",
+            "structure property relationship solid electrolyte materials project",
+        ],
+        max_papers=2,
+        enable_arxiv=False,
+    )
+
+    assert [paper.paper_id for paper in papers] == ["W_relevant"]

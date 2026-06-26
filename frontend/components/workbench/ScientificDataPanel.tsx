@@ -14,7 +14,7 @@ export function ScientificDataPanel({
 
   return (
     <section className="panel span-6">
-      <h2>Scientific Data</h2>
+      <h2>科研数据 / Scientific Data</h2>
       <div className="list">
         {shownProfiles.slice(0, 4).map((profile) => (
           <article className="item" key={profile.name}>
@@ -34,9 +34,8 @@ export function ScientificDataPanel({
             <p className="muted">{shownBaseline.result_summary}</p>
           </article>
         )}
-        {!shownProfiles.length && <p className="muted">暂无数据 profile</p>}
+        {!shownProfiles.length && <p className="muted">暂无数据 profile / No data profile yet.</p>}
       </div>
     </section>
   );
 }
-

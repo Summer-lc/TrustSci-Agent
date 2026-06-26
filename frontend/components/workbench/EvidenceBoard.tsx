@@ -39,20 +39,20 @@ export function EvidenceBoard({ run, busy = false, onDecision, onFreeze, onUnfre
   };
 
   return (
-    <section className="panel span-8">
+    <section className="panel span-6">
       <div className="panel-heading">
-        <h2><FileSearch size={16} /> Evidence Board</h2>
+        <h2><FileSearch size={16} /> 证据板 / Evidence Board</h2>
         <div className="actions">
           <span className={`badge ${run?.evidence_frozen ? "good" : "warn"}`}>
-            {run?.evidence_frozen ? `frozen ${frozenCount}` : "open gate"}
+            {run?.evidence_frozen ? `已冻结 / frozen ${frozenCount}` : "待冻结 / open"}
           </span>
           {run?.evidence_frozen ? (
             <button className="secondary" onClick={onUnfreeze} disabled={busy || !run}>
-              <RotateCcw size={14} /> 解冻
+              <RotateCcw size={14} /> 解冻 / Unfreeze
             </button>
           ) : (
             <button className="secondary" onClick={onFreeze} disabled={busy || !run || evidence.length === 0}>
-              <Lock size={14} /> 冻结
+              <Lock size={14} /> 冻结 / Freeze
             </button>
           )}
         </div>
@@ -100,7 +100,7 @@ export function EvidenceBoard({ run, busy = false, onDecision, onFreeze, onUnfre
               </span>
               <button
                 className="icon-button"
-                title="Accept evidence"
+                title="接受证据 / Accept evidence"
                 onClick={() => onDecision(item.evidence_id, "accepted")}
                 disabled={busy || item.human_decision === "accepted"}
               >
@@ -108,7 +108,7 @@ export function EvidenceBoard({ run, busy = false, onDecision, onFreeze, onUnfre
               </button>
               <button
                 className="icon-button danger"
-                title="Reject evidence"
+                title="拒绝证据 / Reject evidence"
                 onClick={() => onDecision(item.evidence_id, "rejected")}
                 disabled={busy || item.human_decision === "rejected"}
               >
@@ -117,7 +117,7 @@ export function EvidenceBoard({ run, busy = false, onDecision, onFreeze, onUnfre
             </div>
           </article>
         ))}
-        {!filteredEvidence.length && <p className="muted">当前筛选下暂无证据项</p>}
+        {!filteredEvidence.length && <p className="muted">当前筛选下暂无证据项 / No evidence under this filter.</p>}
       </div>
     </section>
   );

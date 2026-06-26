@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 from app.schemas.run import ResearchRun
 from app.llm.interface import LLMClient, LLMRequest
 from app.schemas.planner import PerspectiveQuestion, PlannerPlan
@@ -27,8 +29,12 @@ class PlannerAgent:
     def __init__(self, llm: LLMClient) -> None:
         self.llm = llm
 
-    async def run(self, run: ResearchRun) -> dict:
+    async def run(self, run: ResearchRun, progress: Callable[[str], None] | None = None) -> dict:
+        if progress:
+            progress("Preparing planner fallback, prompt context, and structured JSON schema.")
         fallback = _fallback_plan(run).model_dump()
+        if progress:
+            progress("Calling Qwen/Bailian planner to generate sub-questions, search queries, and perspectives.")
         response = await self.llm.complete(
             LLMRequest(
                 system=SYSTEM_PROMPT,
@@ -38,6 +44,8 @@ class PlannerAgent:
                 agent="planner",
             )
         )
+        if progress:
+            progress("Normalizing planner output and validating perspectives, evidence requirements, and risk controls.")
         return _normalize_plan(response.content, fallback)
 
 

@@ -6,7 +6,7 @@ export function ReportViewer({ run }: { run: ResearchRun | null }) {
   return (
     <section className="panel span-12">
       <div className="panel-heading">
-        <h2>Final Report</h2>
+        <h2>最终报告 / Final Report</h2>
         {run?.report && (
           <div className="actions">
             <a className="secondary link-button" href={reportExportUrl(run.run_id, "md")}>

@@ -12,6 +12,7 @@ def utc_now() -> datetime:
 class RunStatus(str, Enum):
     created = "created"
     running = "running"
+    paused = "paused"
     completed = "completed"
     failed = "failed"
 
@@ -23,4 +24,3 @@ class AgentStep(BaseModel):
     started_at: datetime | None = None
     finished_at: datetime | None = None
     artifacts: dict[str, Any] = Field(default_factory=dict)
-

@@ -8,7 +8,7 @@ export function ClaimAuditPanel({ run }: { run: ResearchRun | null }) {
   return (
     <section className="panel span-6">
       <div className="panel-heading">
-        <h2><ShieldCheck size={16} /> Claim Audit</h2>
+        <h2><ShieldCheck size={16} /> 结论核验 / Claim Audit</h2>
         <span className={`badge ${audit && audit.unsupported === 0 ? "good" : "warn"}`}>
           {audit ? `support ${audit.support_score}` : "pending"}
         </span>
@@ -42,7 +42,7 @@ export function ClaimAuditPanel({ run }: { run: ResearchRun | null }) {
           </div>
         </>
       ) : (
-        <p className="muted">Claim audit 尚未生成</p>
+        <p className="muted">结论核验尚未生成 / Claim audit not generated yet.</p>
       )}
     </section>
   );

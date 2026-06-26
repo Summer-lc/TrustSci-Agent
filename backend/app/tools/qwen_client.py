@@ -189,7 +189,7 @@ class QwenClient:
                 system=system,
                 user=user,
                 response=fallback,
-                error=str(exc),
+                error=_format_exception(exc),
             )
             return fallback
 
@@ -287,3 +287,16 @@ def _parse_json_content(content: str) -> dict[str, Any]:
         cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
         cleaned = re.sub(r"\s*```$", "", cleaned)
     return json.loads(cleaned)
+
+
+def _format_exception(exc: Exception) -> str:
+    detail = str(exc) or repr(exc)
+    if isinstance(exc, httpx.HTTPStatusError):
+        response_text = exc.response.text[:1000] if exc.response is not None else ""
+        return (
+            f"{type(exc).__name__}: status={exc.response.status_code}; "
+            f"message={detail}; response={response_text}"
+        )
+    if isinstance(exc, httpx.RequestError):
+        return f"{type(exc).__name__}: {detail}; url={exc.request.url if exc.request else 'unknown'}"
+    return f"{type(exc).__name__}: {detail}"

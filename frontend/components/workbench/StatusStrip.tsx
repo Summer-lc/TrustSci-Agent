@@ -30,10 +30,10 @@ export function StatusStrip({ config, run }: { config: PublicConfig | null; run:
         {run && (
           <>
             <span className={`badge ${run.citation_frozen ? "good" : "warn"}`}>
-              citations {run.citation_frozen ? "frozen" : "open"}
+              引用 / citations {run.citation_frozen ? "frozen" : "open"}
             </span>
             <span className={`badge ${run.evidence_frozen ? "good" : "warn"}`}>
-              evidence {run.evidence_frozen ? "frozen" : "open"}
+              证据 / evidence {run.evidence_frozen ? "frozen" : "open"}
             </span>
           </>
         )}

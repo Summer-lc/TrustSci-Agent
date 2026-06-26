@@ -23,7 +23,7 @@ export function RunHistory({
     <section className="sidebar-section">
       <div className="section-title">
         <Clock3 size={15} />
-        <span>Runs</span>
+        <span>运行记录 / Runs</span>
       </div>
       <div className="run-list">
         {runs.slice(0, 8).map((run) => (
@@ -36,7 +36,7 @@ export function RunHistory({
             <span>{run.status}</span>
           </button>
         ))}
-        {!runs.length && <span className="muted compact">暂无运行记录</span>}
+        {!runs.length && <span className="muted compact">暂无运行记录 / No runs yet</span>}
       </div>
       {restorable.length > 0 && (
         <>

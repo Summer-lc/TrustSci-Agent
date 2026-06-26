@@ -71,6 +71,7 @@ export type ResearchRun = {
     enable_browser_worker: boolean;
     enable_semantic_scholar: boolean;
     enable_arxiv: boolean;
+    workflow_mode: "auto" | "guided";
   };
   status: string;
   current_stage: string;
@@ -251,6 +252,7 @@ export type ResearchRun = {
     };
     citation_audit_log: string[];
   };
+  errors: string[];
 };
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -274,7 +276,8 @@ export async function createRun(
   domain: string,
   maxPapers: number,
   enableSemanticScholar: boolean,
-  enableArxiv: boolean
+  enableArxiv: boolean,
+  workflowMode: "auto" | "guided" = "auto"
 ) {
   return requestJson<ResearchRun>(`${API_BASE}/api/runs`, {
     method: "POST",
@@ -287,7 +290,8 @@ export async function createRun(
         require_experiment_plan: true,
         enable_browser_worker: false,
         enable_semantic_scholar: enableSemanticScholar,
-        enable_arxiv: enableArxiv
+        enable_arxiv: enableArxiv,
+        workflow_mode: workflowMode
       }
     })
   });
@@ -295,6 +299,10 @@ export async function createRun(
 
 export async function startRun(runId: string) {
   return requestJson<ResearchRun>(`${API_BASE}/api/runs/${runId}/start`, { method: "POST" });
+}
+
+export async function continueRun(runId: string) {
+  return requestJson<ResearchRun>(`${API_BASE}/api/runs/${runId}/continue`, { method: "POST" });
 }
 
 export async function getRun(runId: string) {
