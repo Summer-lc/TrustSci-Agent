@@ -20,8 +20,6 @@ V3 主展示领域为地震事件分类，同时保留能源材料/固态电解�
 | [已有结果与证据边界](docs/onboarding/06_RESULTS_EVIDENCE.md) | 测试结果、地震实验结果及不可外推范围 |
 | [环境配置、启动与验证](docs/onboarding/07_SETUP_GUIDE.md) | Clone、Docker、本地开发、测试与首次冒烟案例 |
 | [代码文件地图](docs/onboarding/08_CODEBASE_MAP.md) | 关键目录、文件职责和推荐阅读顺序 |
-| [后续工作与两人分工](docs/onboarding/09_NEXT_WORK.md) | P0/P1/P2、负责人、依赖关系和验收标准 |
-| [PPT 素材提纲](docs/onboarding/10_PPT_SOURCE_OUTLINE.md) | 16 页汇报结构、素材来源和表述边界 |
 | [GitHub 内容与安全边界](docs/onboarding/11_GITHUB_CONTENTS.md) | 上传内容、排除内容、数据和模型文件政策 |
 
 ## 当前状态（2026-08-21）
