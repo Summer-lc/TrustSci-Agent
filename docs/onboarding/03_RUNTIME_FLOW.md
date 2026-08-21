@@ -2,7 +2,7 @@
 
 ## 1. 从页面到运行对象
 
-1. `frontend/components/workbench/ResearchConsole.tsx` 收集版本、研究模式、问题和约束。
+1. `frontend/components/workbench/ResearchConsole.tsx` 收集界面版本选择、研究模式、问题和约束；版本选择用于前端体验，不是 `POST /api/runs` 的独立请求字段。
 2. `Workbench.tsx` 通过 `frontend/lib/api.ts` 调用 `POST /api/runs`。
 3. `routes_runs.py` 创建 `ResearchRun`，生成 `run_id` 和显示名称，保存初始状态。
 4. 如果选择 baseline 或 experiment_assistance，前端在启动前分别调用 baseline-intake 或 experiment-assistance 接口。
@@ -41,7 +41,9 @@ START
 
 - experiment_assistance：直接进入 `result_evaluation`，不执行用户代码。
 - seismic discovery/idea_refinement：进入 Arena、baseline、实验与反馈链。
-- classic/非地震：进入假设评审和实验设计；代码实验节点会按领域决定是否 no-op。
+- LangGraph 非地震领域：进入假设评审和实验设计；代码实验节点会按领域决定是否 no-op。
+
+这里的 `classic` 是另一套兼容编排引擎，不是领域分支。选用 classic 时由 `ScientistWorkflow` 的线性执行/恢复逻辑接管；选用 LangGraph 时才按上面的状态图分支。
 
 ## 4. 地震假设与 baseline 链
 
@@ -109,9 +111,9 @@ result_interpretation
 - 再次失败，或确定性输入/校验错误，步骤进入 `waiting_action`。
 - 前端只显示后端允许的 retry/skip；关键 baseline、实验结果和报告步骤不能静默跳过。
 - 用户可 pause/resume/abandon 运行；abandoned 是终态。
-- `recover` 用于用户主动选择的历史任务：孤立 running 步骤转为可处理状态，已完成成果不重跑。
+- 服务重启后，内存索引不会自动扫描所有旧目录。先用 `GET /api/runs/workspaces` 找到本地快照，再调用 `POST /api/runs/{run_id}/workspace/restore` 加回当前进程；若该任务停在非终态或遗留 running 步骤，再调用 `POST /api/runs/{run_id}/recover`，把中断步骤转为可处理状态。已完成成果不重跑。
 - 每次动作写入 `last_action`、事件列表和恢复计数。
 
 ## 9. 持久化时机
 
-任务创建、原子步骤变化、用户控制、最终完成和异常都会更新 run store 与 `data/workspace/run_*`。因此前端刷新或进程重启后可从工作区恢复，但原始本地工作区默认不进入 GitHub。
+任务创建、原子步骤变化、用户控制、最终完成和异常都会更新当前进程的 run store 与 `data/workspace/run_*`。前端刷新时当前进程仍可查询；进程重启后按上一节的“列出快照 → restore → 必要时 recover”流程恢复。原始本地工作区默认不进入 GitHub。

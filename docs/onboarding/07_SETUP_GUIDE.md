@@ -7,14 +7,27 @@
 - Node.js 20 以上（本轮环境为 24.14.0）、npm。
 - 可选：阿里云百炼 `DASHSCOPE_API_KEY`、GitHub Token 和各文献/材料服务 Key。
 
+只使用 Docker 启动时，主机不需要另装 Python 与 Node；它们只用于本地开发和直接运行测试。Docker Desktop/Engine 必须已经启动并能执行 `docker compose version`。本项目尚未形成最低 CPU、内存、磁盘、首次构建时长和代理配置的实测基线，这些内容列入新电脑冷启动验收，不能在此虚构数值。
+
 ## 2. 最短启动路径：Docker
 
-在仓库根目录执行：
+首次获取仓库：
+
+```powershell
+git clone https://github.com/maodousa/TrustSci-Agent.git
+Set-Location TrustSci-Agent
+git switch codex/project-handover-docs
+git rev-parse --short HEAD
+```
+
+在仓库根目录启动：
 
 ```powershell
 Copy-Item .env.example .env
 docker compose up --build
 ```
+
+`.env.example` 已设置 `WORKFLOW_ENGINE=langgraph`，上面的标准路径会使用 V3 推荐编排。只有变量未设置时，后端代码才使用兼容默认值 `classic`；不要把引擎选择与地震/非地震领域分支混为一谈。
 
 开发热重载：
 
@@ -28,6 +41,8 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 - 后端 Swagger：http://localhost:8000/docs
 - 后端健康检查：http://localhost:8000/health
 - browser-worker：http://localhost:8010/health
+
+三个端点均可访问才算服务就绪。若 3000、8000 或 8010 已被占用，先停止占用进程，或同步修改 `.env` 端口与对应服务地址；只改一个值会造成前后端或 worker 互相找不到。
 
 停止服务：
 
@@ -43,7 +58,7 @@ docker compose down
 |---|---|---|
 | `DASHSCOPE_API_KEY` | 调用百炼 Qwen | 使用可审计的确定性 fallback |
 | `QWEN_MODEL` | Qwen 模型名 | 示例默认 `qwen-plus` |
-| `WORKFLOW_ENGINE` | `classic` 或 `langgraph` | 代码默认 classic；团队 V3 演示建议 langgraph |
+| `WORKFLOW_ENGINE` | `classic` 或 `langgraph` | `.env.example` 为 langgraph；变量缺失时代码回退 classic |
 | `OPENALEX_EMAIL` / `CROSSREF_EMAIL` | 文献服务礼貌池/联系信息 | 仍可尝试匿名访问 |
 | `SEMANTIC_SCHOLAR_API_KEY` | Semantic Scholar | 默认不开启该来源 |
 | `GITHUB_TOKEN` | 提升 GitHub API 额度 | 匿名请求额度较低 |
@@ -112,7 +127,43 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
 
 无 `DASHSCOPE_API_KEY` 时，Qwen 客户端返回各智能体定义的确定性 fallback，并在 LLM 审计记录中标记 `fallback_used=true`。这适合验证界面、接口和数据流，不应宣传为真实 Qwen 推理。
 
-## 8. 常见问题
+## 8. 第一个端到端冒烟案例
+
+服务就绪后，可直接在前端创建 discovery 任务；也可在另一个 PowerShell 窗口复制下面的 API 示例。它会创建地震任务、选择固定本地演示 baseline、启动、轮询到终态，并在成功时导出 Markdown 报告。
+
+```powershell
+$apiBase = 'http://localhost:8000'
+$createBody = @{
+  domain = 'seismic_event_classification'
+  question = '如何利用多通道波形改进地震事件分类？'
+  mode = 'discovery'
+  constraints = @{ workflow_mode = 'auto'; max_papers = 3 }
+} | ConvertTo-Json -Depth 5
+
+$run = Invoke-RestMethod -Method Post -Uri "$apiBase/api/runs" `
+  -ContentType 'application/json' -Body $createBody
+$runId = $run.run_id
+
+Invoke-RestMethod -Method Post -Uri "$apiBase/api/runs/$runId/baseline-intake" `
+  -ContentType 'application/json' -Body '{"strategy":"ai_generated"}' | Out-Null
+Invoke-RestMethod -Method Post -Uri "$apiBase/api/runs/$runId/start" | Out-Null
+
+$terminal = @('completed', 'failed', 'paused', 'abandoned')
+do {
+  Start-Sleep -Seconds 2
+  $state = Invoke-RestMethod -Uri "$apiBase/api/runs/$runId"
+  Write-Host $state.status $state.current_stage $state.progress
+} while ($terminal -notcontains $state.status)
+
+if ($state.status -eq 'completed') {
+  Invoke-WebRequest -Uri "$apiBase/api/runs/$runId/report/export?format=md" `
+    -OutFile "$runId-report.md"
+}
+```
+
+预期软件级验收是：任务进入明确终态、步骤与限制可查询、成功时报告可导出。无 Key 时应看到 fallback 审计标记；在线文献源仍可能受网络和限流影响，因此“完成”不等于真实 Qwen 或科学结论已经验收。若任务进入 `paused` 或 `failed`，在前端按允许的 continue/retry/skip 操作处理，不要直接修改 `run.json`。
+
+## 9. 常见问题
 
 ### 后端测试找不到 `scripts`
 

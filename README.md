@@ -1,6 +1,6 @@
 # TrustSci-Agent
 
-TrustSci-Agent 是一个基于阿里云百炼 Qwen 的本地优先多智能体 AI Scientist 原型，面向“基于国产开源大模型的 AI Scientist 的研发与应用”赛题。系统围绕真实文献、引用核验、证据账本、科学假设、受控实验、结果解释和研究报告建立可追踪闭环。
+TrustSci-Agent 是一个基于阿里云百炼 Qwen 的本地优先多智能体 AI Scientist 原型，面向“基于国产开源大模型的 AI Scientist 的研发与应用”赛题。系统面向真实文献与外部来源，把引用核验、证据账本、科学假设、受控实验、结果解释和研究报告串成可追踪闭环；固定在线复验仍是提交前任务。
 
 V3 主展示领域为地震事件分类，同时保留能源材料/固态电解质经典流程。
 
@@ -33,6 +33,8 @@ V3 主展示领域为地震事件分类，同时保留能源材料/固态电解�
 Copy-Item .env.example .env
 docker compose up --build
 ```
+
+`.env.example` 已明确设置 `WORKFLOW_ENGINE=langgraph`，因此上述路径使用 V3 推荐编排。只有在不加载该变量时，后端代码才回退到兼容用的 `classic` 默认值。
 
 开发热重载：
 
@@ -143,7 +145,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
 
 ## 后续重点
 
-比赛提交前优先完成真实地震数据子集、可复现公开 baseline、真实 Qwen 固定案例、新机器 Docker 冷启动、生产级执行隔离和最终 demo freeze。两位成员的建议分工见 [后续工作与路线图](docs/onboarding/09_NEXT_WORK.md)。
+提交前 P0 是固定三模式案例、真实 Qwen/外部源复验、新机器 Docker 冷启动、最终 demo freeze、失败路径和比赛口径；真实地震数据、公开 baseline 与生产级执行隔离属于随后提升科学可信度和生产安全的 P1。两位成员的建议分工见 [后续工作与路线图](docs/onboarding/09_NEXT_WORK.md)。
 
 ## 相关文档
 

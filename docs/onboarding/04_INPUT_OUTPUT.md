@@ -27,8 +27,8 @@
 
 任务启动前可选择：
 
-- `manual_upload`：名称、说明、代码文本或仓库地址、运行命令、数据描述、指标和备注。
-- `ai_generated`：使用固定本地演示 baseline，信任级别为 runnable_demo。
+- `manual_upload`：历史 API 枚举名；当前并不是 multipart 文件上传，而是在 JSON 中提供名称、说明、代码文本（最多 200,000 字符）或仓库地址、运行命令、数据描述、指标和备注。
+- `ai_generated`：历史 API 枚举名；当前行为是选择固定本地演示 baseline，不是每次由 AI 重新生成，信任级别为 runnable_demo。
 - `none`：明确无可信 baseline，报告必须降级说明。
 
 示例：
@@ -117,7 +117,7 @@ data/workspace/run_xxx/
 ## 8. 输出解读规则
 
 - `completed` 表示软件流程结束，不自动表示科学结论成立。
-- `completed_positive` 表示当前固定比较中方法指标高于 baseline，不表示真实数据外推成立。
+- `completed_positive` 只表示当前固定比较中方法指标方向上高于 baseline；当前没有最小改善阈值、统计显著性或重复实验要求，不能据此做科研外推。
 - `completed_negative` 仍是有效实验结果，不应隐藏。
 - experiment_assistance 的结果是对用户提供信息的分析，不是系统独立复现实验。
 - `comparison_grade=degraded` 表示可信 baseline 不足，报告应限制主张。

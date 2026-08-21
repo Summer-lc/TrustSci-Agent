@@ -39,7 +39,7 @@
 
 仓库当前没有 `.pt`、`.pth`、`.ckpt`、`.onnx`、`.safetensors`、`.pkl` 或 `.joblib` 预训练权重文件。
 
-系统通过阿里云百炼的 OpenAI 兼容接口调用 Qwen；API Key 只放在本地 `.env`。地震代码实验中的 `model.py` 由模型在运行时生成，经过静态安全检查后复制到单次运行的隔离目录，不作为预训练权重提交。仓库仅保留固定的 `model_template.py`、传统机器学习 baseline 和可复现实验协议。
+系统通过阿里云百炼的 OpenAI 兼容接口调用 Qwen；API Key 只放在本地 `.env`。地震代码实验中的 `model.py` 由 `CodeWriterAgent` 在运行时产生：有可用 Key 时请求 Qwen，无 Key、调用失败或解析失败时使用可审计的 fallback/template。源码经过静态安全检查后复制到单次运行的隔离目录，不作为预训练权重提交。仓库仅保留固定的 `model_template.py`、传统机器学习 baseline 和可复现实验协议。
 
 ## 5. 敏感信息与大文件核验
 
@@ -65,4 +65,4 @@
 2. 从 `.env.example` 复制本地配置；没有 Qwen Key 时使用确定性 fallback 验证界面和流程。
 3. 如需共享新运行结果，先删除提示词、用户输入、Token、绝对路径和不必要的原始网页内容。
 4. 大型真实数据集和模型权重应使用正式数据/模型仓库或 Git LFS，并补充来源、许可证、哈希和版本说明。
-5. 以 [`docs/onboarding/README.md`](README.md) 为后续阅读入口。
+5. 以 [交接入口 README](README.md) 为后续阅读入口。

@@ -2,6 +2,8 @@
 
 > 本页只收录能说明来源和验证条件的结果。核验日期：2026-08-21。
 
+本轮验证对应源码快照提交 `a358546`；依赖版本分别由 `backend/requirements.txt` 和 `frontend/package-lock.json` 固定。后续提交只修订交接文档。
+
 ## 1. 本轮新鲜验证
 
 | 检查 | 命令/环境 | 结果 |
@@ -30,9 +32,9 @@
 
 ## 3. 本地保存的运行产物
 
-本机 `data/workspace/` 中可解析到 470 条保存运行状态：167 completed、167 created、90 failed、34 paused、9 running、3 abandoned。它们覆盖 discovery、idea_refinement 和 experiment_assistance，也覆盖 energy_materials 与 seismic_event_classification。
+在 2026-08-21 的开发机上，对本地 `data/workspace/run_*/run.json` 做过一次性聚合，共解析到 470 条保存运行状态：167 completed、167 created、90 failed、34 paused、9 running、3 abandoned。它们覆盖 discovery、idea_refinement 和 experiment_assistance，也覆盖 energy_materials 与 seismic_event_classification。
 
-这些数字主要用于证明运行生命周期、持久化和测试覆盖产生过多种状态。目录中包含自动化测试、开发调试和演示运行，不能把“167 completed”当成 167 次真实科研实验成功。原始目录也不会上传 GitHub。
+这些数字只是一份不随分支上传、无法由新成员从仓库独立重现的本地库存快照，不属于分支验收证据。目录中包含自动化测试、开发调试和演示运行，不能把“167 completed”当成 167 次真实科研实验成功。后续应先按 `data/dev`、`data/test`、`data/demo` 分层，再为可共享案例生成脱敏清单。
 
 ## 4. 历史结果如何使用
 

@@ -6,7 +6,7 @@
 
 项目已经超过早期“S5/S6 计划阶段”：当前代码包含三种研究模式、证据链、假设竞技、可信 baseline 接入、代码实验、实验重设计、结果分析、报告审计、论文预览、三栏工作台和任务暂停/恢复/废除。软件原型的主体闭环已经形成，自动化验证也较完整。
 
-比赛或科研交付前仍有三个核心缺口：真实地震数据上的独立验证、真实 Qwen/外部文献服务的固定端到端复验、以及比当前同进程策略隔离更强的代码执行安全边界。
+比赛提交层面的主要缺口是固定标准案例、真实 Qwen/外部文献服务复验、新机器冷启动和最终冻结包；真实地震数据上的独立验证与更强的代码执行隔离，是从软件原型继续走向科研级结论和生产级服务的后续缺口。两类验收不能混用。
 
 ## 2. 状态定义
 
@@ -19,10 +19,10 @@
 
 | 能力 | 状态 | 当前证据 | 主要限制 | 下一步 |
 |---|---|---|---|---|
-| FastAPI、Next.js、browser-worker 三服务 | 已完成并验证 | Compose 配置通过；前端构建通过；后端路由测试通过 | 本轮未长时间运行完整 Docker 栈 | 做一次新电脑冷启动录像 |
-| Classic 与 LangGraph 双编排 | 已完成并验证 | `ScientistWorkflow`、`LangGraphWorkflow` 及工作流测试 | Compose 默认值与 `.env.example` 默认值不同，需统一团队使用口径 | 团队统一以 `WORKFLOW_ENGINE=langgraph` 演示 |
+| FastAPI、Next.js、browser-worker 三服务 | 已完成并验证 | Compose 配置、前端构建和后端路由测试通过 | 这是配置/构建/测试级验证；本轮未长时间运行完整 Docker 栈，也未在线复验 browser-worker | 做一次新电脑冷启动录像 |
+| Classic 与 LangGraph 双编排 | 已完成并验证 | `ScientistWorkflow`、`LangGraphWorkflow` 及工作流测试 | `.env.example`/Compose 使用 LangGraph；仅缺少变量时代码回退 classic | 团队演示保留 `WORKFLOW_ENGINE=langgraph` |
 | discovery / idea_refinement / experiment_assistance | 已完成并验证 | 三模式 schema、分支节点、输入接口和 S6 测试 | 当前保存运行多数为开发/测试记录 | 为每种模式冻结一个标准案例 |
-| 文献检索与来源路由 | 已完成并验证 | OpenAlex、Crossref、Semantic Scholar、arXiv 客户端与路由测试 | 外部网络、限流和源可用性会变化 | 记录一次真实在线检索证据 |
+| 文献检索与来源路由 | 已完成并验证 | OpenAlex、Crossref、Semantic Scholar、arXiv 客户端与路由测试 | 这是实现/测试级完成；外部网络、限流和源可用性会变化 | 记录一次真实在线检索证据 |
 | 引用核验、证据账本、人工冻结 | 已完成并验证 | citation/evidence schema、路由与测试 | 自动核验不等于论文内容真实性审查 | 增加人工抽查规范 |
 | 假设生成、批判、Arena、新颖性循环 | 已完成并验证 | 多智能体实现、LangGraph 回边与相关测试 | 真实 Qwen 表现本轮未复验；fallback 结果是模板化的 | 使用固定问题做 Qwen 复验 |
 | baseline 人工接入、AI 演示基线、质量门 | 已完成并验证 | baseline intake、质量门、仓库验证相关测试 | 真实论文代码 baseline 的可重复运行仍不稳定 | 固定一个真实公开 baseline |
@@ -31,7 +31,7 @@
 | 结果评价、消融、解释与双语报告 | 已完成并验证 | result agents、报告 provenance 与导出测试 | 结论质量仍依赖输入数据和模型输出 | 增加人工评分 rubric |
 | Markdown、JSON、PDF、工作区导出/恢复 | 已完成并验证 | API、PDF 导出、workspace 测试 | 需在新机器验证压缩包兼容性 | 冻结一个可恢复提交包 |
 | 暂停、继续、废除、失败步骤重试/跳过、恢复 | 已完成并验证 | 2026-08 生命周期设计与对应测试 | 历史运行中有测试制造的 running/failed 状态 | 区分真实运行与测试存储目录 |
-| 三栏科研工作台、阶段导航、论文阅读 | 已完成并验证 | 35 个工作台组件；22 项前端测试；生产构建通过 | 浏览器 worker 的现场抓取本轮未做在线验证 | 做一次端到端 UI 回归录像 |
+| 三栏科研工作台、阶段导航、论文阅读 | 已完成并验证 | `frontend/components/workbench/*.tsx` 共 35 个文件；22 项前端测试；生产构建通过 | 浏览器 worker 的现场抓取本轮未做在线验证 | 做一次端到端 UI 回归录像 |
 | 地震合成数据与固定 sklearn harness | 已完成并验证 | harness 测试、训练和指标文件均可复现 | 数据是合成波形，仅验证软件闭环 | 接入授权清晰的真实数据子集 |
 | 真实地震数据科研结论 | 未完成/后续任务 | 当前仓库没有真实波形和独立测试集结果 | 不能声称真实事件分类性能 | 建立真实数据划分、基线和外部复核 |
 | 真实 Qwen 固定端到端验收 | 已实现待复验 | Qwen 客户端、ping、日志与 fallback 均有测试 | 本轮环境未配置 Key | 用团队账户完成并保存脱敏摘要 |
@@ -39,6 +39,8 @@
 | 比赛最终提交包与复现实验说明 | 部分完成 | freeze 脚本、检查单、演示 PPT 已存在 | 当前代码快照此前长期未提交；标准案例尚未重新冻结 | 基于本分支生成最终提交包 |
 
 ## 4. 当前验证数字
+
+本节对应源码快照提交 `a358546`；Python 依赖以 `backend/requirements.txt`、前端依赖以 `frontend/package-lock.json` 为准。后续提交只修订交接文档。
 
 - 后端：`279 passed, 3 warnings`，耗时约 114 秒。
 - 前端：2 个测试文件、22 项测试全部通过。
