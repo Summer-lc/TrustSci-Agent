@@ -21,3 +21,31 @@ data/workspace/
 .references/
 *.log
 .codegraph/
+
+# Local assistant and task-runner state
+.claude/
+.agents/
+
+# Frontend incremental build state
+frontend/tsconfig.tsbuildinfo
+
+# Runtime data, browser captures, and local service workspaces
+data/browser_previews/
+data/browser_traces/
+browser-worker/data/
+backend/data/
+tmp/
+logs/
+
+# PowerPoint build intermediates and non-final showcase exports
+项目展示/.pptx-build/
+项目展示/demo_data/
+项目展示/演示数据/
+项目展示/成品预览/
+项目展示/成品预览_初版/
+项目展示/模板预览/
+项目展示/界面截图/
+项目展示/项目展示.pptx
+项目展示/项目展示_TrustSci-Agent甲方功能展示.pptx
+项目展示/生成甲方功能展示PPT.ps1
+项目展示/准备演示数据.ps1
