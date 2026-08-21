@@ -1,5 +1,6 @@
 from html import escape
 from pathlib import Path
+import re
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -10,6 +11,9 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 
 FONT_NAME = "STSong-Light"
+LATIN_FONT_NAME = "Helvetica"
+CODE_FONT_NAME = "Courier"
+ASCII_RUN = re.compile(r"[\x20-\x7e]+")
 
 
 def export_markdown_pdf(markdown_text: str, output_path: Path) -> Path:
@@ -37,18 +41,21 @@ def export_markdown_pdf(markdown_text: str, output_path: Path) -> Path:
             flowables.append(Spacer(1, 4))
             continue
         if in_code_block:
-            flowables.append(Paragraph(_safe(line), styles["Code"]))
+            flowables.append(Paragraph(_rich_text(line, CODE_FONT_NAME), styles["Code"]))
             continue
         if line.startswith("# "):
-            flowables.append(Paragraph(_safe(line[2:]), styles["Title"]))
+            flowables.append(Paragraph(_rich_text(line[2:]), styles["Title"]))
             flowables.append(Spacer(1, 8))
         elif line.startswith("## "):
-            flowables.append(Paragraph(_safe(line[3:]), styles["Heading2"]))
+            flowables.append(Paragraph(_rich_text(line[3:]), styles["Heading2"]))
             flowables.append(Spacer(1, 5))
+        elif line.startswith("### "):
+            flowables.append(Paragraph(_rich_text(line[4:]), styles["Heading3"]))
+            flowables.append(Spacer(1, 3))
         elif line.startswith("- "):
-            flowables.append(Paragraph(f"- {_safe(line[2:])}", styles["Bullet"]))
+            flowables.append(Paragraph(_rich_text(f"- {line[2:]}"), styles["Bullet"]))
         else:
-            flowables.append(Paragraph(_safe(line), styles["Body"]))
+            flowables.append(Paragraph(_rich_text(line), styles["Body"]))
 
     doc.build(flowables or [Paragraph("Empty report", styles["Body"])])
     return output_path
@@ -78,6 +85,16 @@ def _styles() -> dict[str, ParagraphStyle]:
             leading=16,
             spaceBefore=8,
             spaceAfter=4,
+        ),
+        "Heading3": ParagraphStyle(
+            "TrustSciHeading3",
+            parent=base["Heading3"],
+            fontName=FONT_NAME,
+            fontSize=10,
+            leading=14,
+            spaceBefore=5,
+            spaceAfter=3,
+            textColor="#27364a",
         ),
         "Body": ParagraphStyle(
             "TrustSciBody",
@@ -111,3 +128,16 @@ def _styles() -> dict[str, ParagraphStyle]:
 
 def _safe(text: str) -> str:
     return escape(text).replace("  ", "&nbsp;&nbsp;")
+
+
+def _rich_text(text: str, latin_font: str = LATIN_FONT_NAME) -> str:
+    parts: list[str] = []
+    cursor = 0
+    for match in ASCII_RUN.finditer(text):
+        if match.start() > cursor:
+            parts.append(_safe(text[cursor:match.start()]))
+        parts.append(f'<font name="{latin_font}">{_safe(match.group())}</font>')
+        cursor = match.end()
+    if cursor < len(text):
+        parts.append(_safe(text[cursor:]))
+    return "".join(parts)

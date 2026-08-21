@@ -115,4 +115,3 @@ result_interpretation
 ## 9. 持久化时机
 
 任务创建、原子步骤变化、用户控制、最终完成和异常都会更新 run store 与 `data/workspace/run_*`。因此前端刷新或进程重启后可从工作区恢复，但原始本地工作区默认不进入 GitHub。
-

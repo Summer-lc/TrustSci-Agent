@@ -13,6 +13,15 @@ type Props = {
   onUnfreeze: () => void;
 };
 
+const FILTER_LABELS: Record<EvidenceFilter, string> = {
+  all: "全部",
+  report: "可进报告",
+  frozen: "已冻结",
+  accepted: "已接受",
+  rejected: "已拒绝",
+  unsupported: "未被结论使用",
+};
+
 export function EvidenceBoard({ run, busy = false, onDecision, onFreeze, onUnfreeze }: Props) {
   const [filter, setFilter] = useState<EvidenceFilter>("all");
   const evidence = run?.evidence || [];
@@ -41,18 +50,18 @@ export function EvidenceBoard({ run, busy = false, onDecision, onFreeze, onUnfre
   return (
     <section className="panel span-6">
       <div className="panel-heading">
-        <h2><FileSearch size={16} /> 证据板 / Evidence Board</h2>
+        <h2><FileSearch size={16} /> 证据板</h2>
         <div className="actions">
           <span className={`badge ${run?.evidence_frozen ? "good" : "warn"}`}>
-            {run?.evidence_frozen ? `已冻结 / frozen ${frozenCount}` : "待冻结 / open"}
+            {run?.evidence_frozen ? `已冻结 ${frozenCount}` : "待冻结"}
           </span>
           {run?.evidence_frozen ? (
             <button className="secondary" onClick={onUnfreeze} disabled={busy || !run}>
-              <RotateCcw size={14} /> 解冻 / Unfreeze
+              <RotateCcw size={14} /> 解冻
             </button>
           ) : (
             <button className="secondary" onClick={onFreeze} disabled={busy || !run || evidence.length === 0}>
-              <Lock size={14} /> 冻结 / Freeze
+              <Lock size={14} /> 冻结
             </button>
           )}
         </div>
@@ -64,7 +73,7 @@ export function EvidenceBoard({ run, busy = false, onDecision, onFreeze, onUnfre
             className={filter === key ? "active" : ""}
             onClick={() => setFilter(key)}
           >
-            {key} {counts[key]}
+            {FILTER_LABELS[key]} {counts[key]}
           </button>
         ))}
       </div>
@@ -74,33 +83,33 @@ export function EvidenceBoard({ run, busy = false, onDecision, onFreeze, onUnfre
             <div className="item-title">{item.claim}</div>
             <div className="item-meta">
               {item.source_title}
-              {item.page ? ` · page ${item.page}` : ""}
+              {item.page ? ` · 页码 ${item.page}` : ""}
               {item.section ? ` · ${item.section}` : ""}
               {item.evidence_type ? ` · ${item.evidence_type}` : ""}
             </div>
             <p className="muted">{item.quote_or_summary}</p>
             <div className="item-meta">
-              {item.verification_method || "pending"} · confidence {item.verification_confidence ?? "n/a"}
+              {item.verification_method || "待核验"} · 置信度 {item.verification_confidence ?? "n/a"}
               {item.matched_source ? ` · ${item.matched_source}` : ""}
             </div>
             <div className="item-actions">
               <span className={`badge ${item.verified ? "good" : "warn"}`}>
                 {item.frozen
-                  ? "frozen"
+                  ? "已冻结"
                   : run?.evidence_frozen
-                    ? "not frozen"
+                    ? "未冻结"
                     : item.eligible_for_report
-                      ? "report-ready"
+                      ? "可进报告"
                       : item.verified
-                        ? "verified"
-                        : "needs audit"}
+                        ? "已核验"
+                        : "需审计"}
               </span>
               <span className={`badge ${item.human_decision === "rejected" ? "warn" : item.human_decision === "accepted" ? "good" : ""}`}>
-                {item.human_decision}
+                {decisionLabel(item.human_decision)}
               </span>
               <button
                 className="icon-button"
-                title="接受证据 / Accept evidence"
+                title="接受证据"
                 onClick={() => onDecision(item.evidence_id, "accepted")}
                 disabled={busy || item.human_decision === "accepted"}
               >
@@ -108,7 +117,7 @@ export function EvidenceBoard({ run, busy = false, onDecision, onFreeze, onUnfre
               </button>
               <button
                 className="icon-button danger"
-                title="拒绝证据 / Reject evidence"
+                title="拒绝证据"
                 onClick={() => onDecision(item.evidence_id, "rejected")}
                 disabled={busy || item.human_decision === "rejected"}
               >
@@ -117,8 +126,14 @@ export function EvidenceBoard({ run, busy = false, onDecision, onFreeze, onUnfre
             </div>
           </article>
         ))}
-        {!filteredEvidence.length && <p className="muted">当前筛选下暂无证据项 / No evidence under this filter.</p>}
+        {!filteredEvidence.length && <p className="muted">当前筛选下暂无证据。</p>}
       </div>
     </section>
   );
+}
+
+function decisionLabel(decision: string) {
+  if (decision === "accepted") return "已接受";
+  if (decision === "rejected") return "已拒绝";
+  return "待处理";
 }

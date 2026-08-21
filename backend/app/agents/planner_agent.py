@@ -1,8 +1,12 @@
 from collections.abc import Callable
 
-from app.schemas.run import ResearchRun
-from app.llm.interface import LLMClient, LLMRequest
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import Runnable
+
+from app.llm.interface import LLMClient
+from app.llm.langchain_adapter import LLMClientRunnable
 from app.schemas.planner import PerspectiveQuestion, PlannerPlan
+from app.schemas.run import ResearchRun
 
 
 SYSTEM_PROMPT = """You are the Research Planner Agent for TrustSci-Agent.
@@ -22,7 +26,62 @@ Required JSON keys:
 - success_criteria: measurable criteria for a good run
 - risk_controls: checks that reduce hallucination, weak evidence, or unverifiable experiments
 - perspectives: 4-6 objects with keys perspective, role, question, search_query, evidence_requirement, risk_control. Cover domain expert, ML/data expert, experimentalist, skeptical reviewer, and translation/application perspectives.
+
+If domain is seismic_event_classification, search queries must be grounded in
+seismology terms such as seismic/earthquake waveform, seismic event
+classification, phase picking/classification, earthquake detection, and
+earthquake-explosion/blast discrimination. Treat natural earthquake, blast,
+collapse, induced event, noise, and non-event labels as examples rather than a
+fixed taxonomy. Avoid generic machine-learning-only or medical/application-only
+queries.
 """
+
+
+USER_TEMPLATE = """Domain: {domain}
+Question: {question}
+Constraints:
+- must_verify_citations: {must_verify_citations}
+- max_papers: {max_papers}
+- require_experiment_plan: {require_experiment_plan}
+- enable_browser_worker: {enable_browser_worker}
+- enable_semantic_scholar: {enable_semantic_scholar}
+- enable_arxiv: {enable_arxiv}
+
+Design a verifiable AI Scientist workflow for this run. Prioritize real papers, open scientific datasets, explicit evidence requirements, and a bounded experiment plan."""
+
+PROMPT = ChatPromptTemplate.from_messages([("system", SYSTEM_PROMPT), ("user", USER_TEMPLATE)])
+
+
+class PlannerPlanParser(Runnable):
+    """Structured output parser for PlannerAgent (LangChain ``Runnable``).
+
+    Validates the LLM content (already JSON-parsed by QwenClient into a dict,
+    or a raw string on the fallback path) against the existing PlannerPlan
+    normalization. Any parse/validation failure returns the fallback plan, so
+    a malformed model output never crashes the run.
+
+    Implemented as a plain ``Runnable`` (not ``BaseOutputParser``) because
+    QwenClient already JSON-parses into a dict and records it in the audit log;
+    ``BaseOutputParser`` would wrap the dict in a ``Generation(text=...)``
+    string slot and reject it. Keeping the dict flowing through preserves the
+    audit-log response format unchanged.
+    """
+
+    def __init__(self, fallback: dict | None = None) -> None:
+        super().__init__()
+        self.fallback = fallback if fallback is not None else {}
+
+    def parse(self, content: object) -> dict:
+        try:
+            return _normalize_plan(content, self.fallback)
+        except Exception:
+            return self.fallback
+
+    def invoke(self, input: object, config: object = None, **kwargs: object) -> dict:
+        return self.parse(input)
+
+    async def ainvoke(self, input: object, config: object = None, **kwargs: object) -> dict:
+        return self.parse(input)
 
 
 class PlannerAgent:
@@ -35,40 +94,39 @@ class PlannerAgent:
         fallback = _fallback_plan(run).model_dump()
         if progress:
             progress("Calling Qwen/Bailian planner to generate sub-questions, search queries, and perspectives.")
-        response = await self.llm.complete(
-            LLMRequest(
-                system=SYSTEM_PROMPT,
-                user=_build_user_prompt(run),
-                fallback=fallback,
-                run_id=run.run_id,
-                agent="planner",
+        chain = (
+            PROMPT
+            | LLMClientRunnable(self.llm).bind(
+                fallback=fallback, run_id=run.run_id, agent="planner"
             )
+            | PlannerPlanParser(fallback=fallback)
         )
+        plan = await chain.ainvoke(_prompt_vars(run))
         if progress:
             progress("Normalizing planner output and validating perspectives, evidence requirements, and risk controls.")
-        return _normalize_plan(response.content, fallback)
+        return plan
 
 
-def _build_user_prompt(run: ResearchRun) -> str:
-    return (
-        f"Domain: {run.domain}\n"
-        f"Question: {run.question}\n"
-        "Constraints:\n"
-        f"- must_verify_citations: {run.constraints.must_verify_citations}\n"
-        f"- max_papers: {run.constraints.max_papers}\n"
-        f"- require_experiment_plan: {run.constraints.require_experiment_plan}\n"
-        f"- enable_browser_worker: {run.constraints.enable_browser_worker}\n"
-        f"- enable_semantic_scholar: {run.constraints.enable_semantic_scholar}\n"
-        f"- enable_arxiv: {run.constraints.enable_arxiv}\n\n"
-        "Design a verifiable AI Scientist workflow for this run. Prioritize real papers, "
-        "open scientific datasets, explicit evidence requirements, and a bounded experiment plan."
-    )
+def _prompt_vars(run: ResearchRun) -> dict:
+    constraints = run.constraints
+    return {
+        "domain": run.domain,
+        "question": run.question,
+        "must_verify_citations": constraints.must_verify_citations,
+        "max_papers": constraints.max_papers,
+        "require_experiment_plan": constraints.require_experiment_plan,
+        "enable_browser_worker": constraints.enable_browser_worker,
+        "enable_semantic_scholar": constraints.enable_semantic_scholar,
+        "enable_arxiv": constraints.enable_arxiv,
+    }
 
 
 def _fallback_plan(run: ResearchRun) -> PlannerPlan:
     browser_tool = ["browser_capture"] if run.constraints.enable_browser_worker else []
     arxiv_tool = ["arxiv_search"] if run.constraints.enable_arxiv else []
     semantic_tool = ["semantic_scholar_search"] if run.constraints.enable_semantic_scholar else []
+    if run.domain == "seismic_event_classification":
+        return _seismic_fallback_plan(run, browser_tool, arxiv_tool, semantic_tool)
     perspectives = _fallback_perspectives(run)
     return PlannerPlan(
         research_objective=run.question,
@@ -149,6 +207,98 @@ def _fallback_plan(run: ResearchRun) -> PlannerPlan:
     )
 
 
+def _seismic_fallback_plan(
+    run: ResearchRun,
+    browser_tool: list[str],
+    arxiv_tool: list[str],
+    semantic_tool: list[str],
+) -> PlannerPlan:
+    perspectives = _seismic_fallback_perspectives(run)
+    return PlannerPlan(
+        research_objective=run.question,
+        domain=run.domain,
+        constraints_summary=[
+            "Use only real, verifiable seismology and deep-learning literature records.",
+            f"Collect at most {run.constraints.max_papers} papers before citation verification.",
+            "Treat event labels such as earthquake, blast, collapse, induced event, noise, and non-event as task examples, not a fixed taxonomy.",
+            "Produce an experiment plan with seismic datasets, model baselines, metrics, and failure modes.",
+        ],
+        sub_questions=[
+            "Which deep-learning architectures are used for seismic waveform event detection or classification?",
+            "Which label spaces and datasets support earthquake, blast, induced-event, collapse, noise, or non-event discrimination?",
+            "Which open code baselines are method/model repositories rather than dataset-only repositories?",
+            "Which metrics, splits, and station/region transfer tests make the improvement falsifiable?",
+        ],
+        search_queries=[
+            "seismic event classification deep learning waveform",
+            "earthquake explosion discrimination waveform classification deep learning",
+            "seismic phase picking phase classification PhaseNet EQTransformer",
+            "earthquake detection seismic waveform CNN transformer",
+            "microseismic event classification deep learning",
+            "SeisBench STEAD INSTANCE seismic waveform classification benchmark",
+            "natural earthquake quarry blast noise classification seismic",
+        ],
+        databases=[
+            "OpenAlex",
+            "Semantic Scholar (optional)",
+            "arXiv",
+            "Crossref",
+            "DataCite",
+            "SeisBench",
+            "STEAD",
+            "INSTANCE",
+            "local PDF evidence ledger",
+        ],
+        tools_to_call=[
+            "literature_router",
+            "openalex_search",
+            *semantic_tool,
+            *arxiv_tool,
+            *browser_tool,
+            "layered_citation_verifier",
+            "pdf_parser",
+            "seismic_data_profile",
+            "baseline_discovery",
+            "repository_verifier",
+            "evidence_ledger",
+            "hypothesis_generator",
+            "critic_debate",
+            "experiment_designer",
+            "report_writer",
+        ],
+        evidence_requirements=[
+            "Every literature claim must include title, year, source URL or DOI, and verification status.",
+            "Dataset claims must name label taxonomy, waveform/source domain, availability, and split assumptions.",
+            "Baseline claims must distinguish method/model code from dataset-only repositories.",
+            "Experiment claims must separate expected outcomes from verified results.",
+        ],
+        workflow_plan=[
+            "planner: decompose seismic event classification into task, data, baseline, and metric questions",
+            "literature_search: retrieve seismology-specific papers from OpenAlex, optional Semantic Scholar, arXiv, and browser captures",
+            "citation_verification: verify arXiv ID, DOI/title/year, DataCite, and title-search metadata before using citations",
+            "paper_classification: mark papers as method_model, dataset_benchmark, survey_review, application_only, or excluded",
+            "baseline_discovery: find code from eligible method papers and per-paper seismic GitHub/PapersWithCode search",
+            "repository_verification: reject dataset-only, non-seismic, or unrelated code repositories",
+            "hypothesis_debate: generate, critique, and rank candidate model-improvement paths",
+            "experiment_design: define dataset, baseline, metric, split, ablation, and failure modes",
+            "report_writer: produce the competition-format research plan with citation audit",
+        ],
+        success_criteria=[
+            "At least half of returned papers are directly seismic-relevant when source APIs provide enough candidates.",
+            "At least two papers are method/model candidates or the run honestly reports baseline insufficiency.",
+            "Search queries cover waveform classification, phase picking/detection, datasets, and executable baselines.",
+            "Risk controls prevent generic ML, medical, dataset-only, or unrelated code from becoming baselines.",
+        ],
+        risk_controls=[
+            "Reject or down-rank generic deep-learning papers without seismic waveform/event evidence.",
+            "Reject dataset-only repositories as model baselines.",
+            "Do not assume a fixed four-class taxonomy; record each paper's actual labels and dataset.",
+            "Keep hypotheses bounded to available seismic data and measurable metrics.",
+        ],
+        perspectives=perspectives,
+    )
+
+
 def _normalize_plan(content: object, fallback: dict) -> dict:
     if not isinstance(content, dict):
         return fallback
@@ -217,6 +367,51 @@ def _fallback_perspectives(run: ResearchRun) -> list[PerspectiveQuestion]:
             search_query="solid-state battery electrolyte screening practical constraints stability manufacturability",
             evidence_requirement="Application claims must be grounded in literature or dataset constraints.",
             risk_control="Avoid claiming industrial readiness from proxy benchmark results.",
+        ),
+    ]
+
+
+def _seismic_fallback_perspectives(run: ResearchRun) -> list[PerspectiveQuestion]:
+    return [
+        PerspectiveQuestion(
+            perspective="seismology_task",
+            role="Seismologist",
+            question="Which event types, waveform windows, stations, and label definitions are used in seismic event classification papers?",
+            search_query="seismic event classification earthquake blast noise waveform labels",
+            evidence_requirement="Task claims must cite papers that describe seismic waveforms, event labels, and data provenance.",
+            risk_control="Do not collapse all papers into a fixed four-class taxonomy; preserve each paper's label space.",
+        ),
+        PerspectiveQuestion(
+            perspective="ml_model_baseline",
+            role="Machine-learning scientist",
+            question="Which neural architectures provide reusable baselines for seismic waveform detection, phase picking, or event classification?",
+            search_query="seismic waveform classification deep learning CNN transformer PhaseNet EQTransformer",
+            evidence_requirement="Baseline claims must name model architecture, code availability, metric, and dataset when available.",
+            risk_control="Reject generic ML/model papers without seismic-domain evidence.",
+        ),
+        PerspectiveQuestion(
+            perspective="data_benchmark",
+            role="Data benchmark reviewer",
+            question="Which open seismic datasets or benchmarks can support bounded evaluation without confusing dataset papers with model baselines?",
+            search_query="STEAD INSTANCE SeisBench seismic waveform dataset benchmark event classification",
+            evidence_requirement="Dataset claims must name source, labels, split constraints, and availability.",
+            risk_control="Mark dataset-only papers and repos as provenance, not model baselines.",
+        ),
+        PerspectiveQuestion(
+            perspective="experimental_validation",
+            role="Experimental ML evaluator",
+            question="Which metrics and validation protocols test robustness across station, region, magnitude, noise, and transfer settings?",
+            search_query="seismic event classification metrics cross station generalization waveform deep learning",
+            evidence_requirement="Experiment plans must include dataset split, baseline, metric, and failure conditions.",
+            risk_control="Separate planned experiments from executed results.",
+        ),
+        PerspectiveQuestion(
+            perspective="skeptical_reviewer",
+            role="Skeptical reviewer",
+            question="Where could the proposed improvement overclaim novelty, baseline strength, or dataset generalization?",
+            search_query="seismic deep learning event detection classification limitations reproducibility",
+            evidence_requirement="Novelty and limitation claims must cite verified related work or be marked as audit-only.",
+            risk_control="Downgrade unsupported novelty or performance claims into risks or future work.",
         ),
     ]
 

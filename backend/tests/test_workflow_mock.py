@@ -12,7 +12,7 @@ async def test_workflow_completes_with_mocked_literature(monkeypatch) -> None:
     settings = Settings(dashscope_api_key="", max_papers=2)
     workflow = ScientistWorkflow(settings)
 
-    async def fake_search(queries, *, max_papers: int, enable_semantic_scholar: bool = False, enable_arxiv: bool = True):
+    async def fake_search(queries, *, max_papers: int, enable_semantic_scholar: bool = False, enable_arxiv: bool = True, domain: str = ""):
         assert enable_arxiv is True
         return [
             Paper(
@@ -80,7 +80,7 @@ async def test_workflow_can_disable_arxiv(monkeypatch) -> None:
     settings = Settings(dashscope_api_key="", max_papers=2)
     workflow = ScientistWorkflow(settings)
 
-    async def fake_search(queries, *, max_papers: int, enable_semantic_scholar: bool = False, enable_arxiv: bool = True):
+    async def fake_search(queries, *, max_papers: int, enable_semantic_scholar: bool = False, enable_arxiv: bool = True, domain: str = ""):
         assert enable_arxiv is False
         return [
             Paper(
@@ -122,7 +122,7 @@ async def test_workflow_uses_semantic_scholar_when_enabled(monkeypatch) -> None:
     settings = Settings(dashscope_api_key="", max_papers=2)
     workflow = ScientistWorkflow(settings)
 
-    async def fake_router_search(queries, *, max_papers: int, enable_semantic_scholar: bool = False, enable_arxiv: bool = True):
+    async def fake_router_search(queries, *, max_papers: int, enable_semantic_scholar: bool = False, enable_arxiv: bool = True, domain: str = ""):
         assert enable_semantic_scholar is True
         assert enable_arxiv is True
         return [
@@ -181,7 +181,7 @@ async def test_guided_workflow_pauses_for_citation_and_evidence_review(monkeypat
     settings = Settings(dashscope_api_key="", max_papers=1)
     workflow = ScientistWorkflow(settings)
 
-    async def fake_search(queries, *, max_papers: int, enable_semantic_scholar: bool = False, enable_arxiv: bool = True):
+    async def fake_search(queries, *, max_papers: int, enable_semantic_scholar: bool = False, enable_arxiv: bool = True, domain: str = ""):
         return [
             Paper(
                 paper_id="paper_001",
@@ -217,6 +217,8 @@ async def test_guided_workflow_pauses_for_citation_and_evidence_review(monkeypat
     assert first_pause.report is None
 
     first_pause.citation_frozen = True
+    first_pause.papers[0].human_decision = "accepted"
+    first_pause.papers[0].report_eligible = True
     first_pause.frozen_paper_ids = ["paper_001"]
     second_pause = await workflow.continue_run(first_pause)
 
@@ -228,6 +230,8 @@ async def test_guided_workflow_pauses_for_citation_and_evidence_review(monkeypat
     assert second_pause.report is None
 
     second_pause.evidence_frozen = True
+    second_pause.evidence[0].human_decision = "accepted"
+    second_pause.evidence[0].eligible_for_report = True
     second_pause.frozen_evidence_ids = [second_pause.evidence[0].evidence_id]
     completed = await workflow.continue_run(second_pause)
 

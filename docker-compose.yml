@@ -1,7 +1,8 @@
 services:
   backend:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
     image: trustsci-agent-backend:latest
     environment:
       BACKEND_HOST: 0.0.0.0
@@ -17,6 +18,7 @@ services:
       MAX_PAPERS: ${MAX_PAPERS:-6}
       MATERIALS_PROJECT_API_KEY: ${MATERIALS_PROJECT_API_KEY:-}
       BROWSER_WORKER_URL: ${BROWSER_WORKER_URL:-http://browser-worker:8010}
+      WORKFLOW_ENGINE: ${WORKFLOW_ENGINE:-classic}
       DATA_DIR: /app/data
     ports:
       - "${BACKEND_PORT:-8000}:8000"

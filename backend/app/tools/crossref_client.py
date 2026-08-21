@@ -47,6 +47,53 @@ class CrossrefClient:
         paper.verification_status = "verified" if score >= _TITLE_VERIFY_THRESHOLD and year_ok else "suspicious"
         return paper
 
+    async def search(self, query: str, limit: int) -> list[Paper]:
+        query = query.strip()
+        if not query or limit <= 0:
+            return []
+
+        params: dict[str, str | int] = {
+            "query.bibliographic": query,
+            "rows": max(1, min(limit, 100)),
+            "select": ",".join(
+                [
+                    "DOI",
+                    "title",
+                    "container-title",
+                    "type",
+                    "is-referenced-by-count",
+                    "published-print",
+                    "published-online",
+                    "published",
+                    "issued",
+                    "author",
+                    "URL",
+                    "abstract",
+                ]
+            ),
+            **self._params(),
+        }
+        try:
+            async with httpx.AsyncClient(timeout=20, transport=self.transport) as client:
+                response = await client.get(
+                    _CROSSREF_WORKS_URL,
+                    params=params,
+                    headers=self._headers(),
+                )
+                response.raise_for_status()
+            items = response.json().get("message", {}).get("items", [])
+        except Exception:
+            return []
+
+        papers: list[Paper] = []
+        for item in items:
+            paper = _paper_from_work(item, len(papers) + 1)
+            if paper is not None:
+                papers.append(paper)
+            if len(papers) >= limit:
+                break
+        return papers
+
     def _params(self) -> dict[str, str]:
         email = self.settings.crossref_email or self.settings.openalex_email
         return {"mailto": email} if email else {}
@@ -127,6 +174,37 @@ def _year_matches(paper_year: int | None, crossref_year: int | None) -> bool:
     if paper_year is None or crossref_year is None:
         return True
     return abs(paper_year - crossref_year) <= 1
+
+
+def _paper_from_work(message: dict[str, Any], index: int) -> Paper | None:
+    title = _first(message.get("title"))
+    if not title:
+        return None
+    doi = _normalize_doi(message.get("DOI"))
+    source_url = message.get("URL") or (f"https://doi.org/{doi}" if doi else None)
+    return Paper(
+        paper_id=_paper_id(doi, index),
+        title=title,
+        authors=_authors(message.get("author")),
+        year=_published_year(message),
+        publication_date=_published_date(message),
+        doi=doi,
+        source_url=source_url,
+        abstract=_clean_text(message.get("abstract")),
+        venue=_first(message.get("container-title")) or None,
+        work_type=message.get("type"),
+        cited_by_count=message.get("is-referenced-by-count"),
+        source_api="crossref",
+        verified_by=["crossref"],
+        verification_status="candidate",
+    )
+
+
+def _paper_id(doi: str | None, index: int) -> str:
+    if doi:
+        slug = re.sub(r"[^a-z0-9]+", "_", doi.lower()).strip("_")
+        return f"crossref:{slug[:80]}"
+    return f"crossref_{index:03d}"
 
 
 def _normalize_doi(raw: object) -> str | None:

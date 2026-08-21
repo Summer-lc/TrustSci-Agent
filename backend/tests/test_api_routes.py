@@ -139,10 +139,17 @@ def test_evidence_decision_and_freeze_restrict_report_set() -> None:
             title="Kept verified paper",
             verification_status="verified",
             report_eligible=True,
+            human_decision="accepted",
         ),
         Paper(
             paper_id="p_reject",
             title="Rejected verified paper",
+            verification_status="verified",
+            report_eligible=True,
+        ),
+        Paper(
+            paper_id="p_pending",
+            title="Pending verified paper",
             verification_status="verified",
             report_eligible=True,
         ),
@@ -156,6 +163,7 @@ def test_evidence_decision_and_freeze_restrict_report_set() -> None:
             quote_or_summary="Traceable support.",
             verified=True,
             eligible_for_report=True,
+            human_decision="accepted",
         ),
         EvidenceItem(
             evidence_id="ev_reject",
@@ -163,6 +171,15 @@ def test_evidence_decision_and_freeze_restrict_report_set() -> None:
             claim="Rejected evidence should not enter the report.",
             source_title="Rejected verified paper",
             quote_or_summary="Rejected support.",
+            verified=True,
+            eligible_for_report=True,
+        ),
+        EvidenceItem(
+            evidence_id="ev_pending",
+            paper_id="p_pending",
+            claim="Pending evidence should not enter the report until accepted.",
+            source_title="Pending verified paper",
+            quote_or_summary="Pending support.",
             verified=True,
             eligible_for_report=True,
         ),
@@ -211,10 +228,17 @@ def test_paper_decision_and_freeze_restrict_citation_set() -> None:
             title="Kept citation",
             verification_status="verified",
             report_eligible=True,
+            human_decision="accepted",
         ),
         Paper(
             paper_id="p_reject",
             title="Rejected citation",
+            verification_status="verified",
+            report_eligible=True,
+        ),
+        Paper(
+            paper_id="p_pending",
+            title="Pending citation",
             verification_status="verified",
             report_eligible=True,
         ),
@@ -228,6 +252,7 @@ def test_paper_decision_and_freeze_restrict_citation_set() -> None:
             quote_or_summary="Traceable support.",
             verified=True,
             eligible_for_report=True,
+            human_decision="accepted",
         ),
         EvidenceItem(
             evidence_id="ev_reject",
@@ -235,6 +260,15 @@ def test_paper_decision_and_freeze_restrict_citation_set() -> None:
             claim="Rejected citation evidence should not support the report.",
             source_title="Rejected citation",
             quote_or_summary="Rejected support.",
+            verified=True,
+            eligible_for_report=True,
+        ),
+        EvidenceItem(
+            evidence_id="ev_pending",
+            paper_id="p_pending",
+            claim="Pending citation evidence should not support the report until accepted.",
+            source_title="Pending citation",
+            quote_or_summary="Pending support.",
             verified=True,
             eligible_for_report=True,
         ),
@@ -312,11 +346,22 @@ def test_select_hypothesis_rebuilds_experiment_and_report() -> None:
 
     markdown = client.get(f"/api/runs/{run.run_id}/report/export?format=md")
     assert markdown.status_code == 200
-    assert markdown.text.startswith("# Evidence-Grounded Research Plan")
+    assert markdown.text.startswith("# English Report")
+    assert "# 中文报告" in markdown.text
+    assert "# System Provenance and Audit Appendix" in markdown.text
 
     pdf = client.get(f"/api/runs/{run.run_id}/report/export?format=pdf")
     assert pdf.status_code == 200
     assert pdf.content.startswith(b"%PDF")
+
+
+def test_create_run_carries_mode() -> None:
+    response = client.post(
+        "/api/runs",
+        json={"domain": "seismic_event_classification", "question": "q", "mode": "idea_refinement"},
+    )
+    assert response.status_code == 200
+    assert response.json()["mode"] == "idea_refinement"
 
 
 def _critic(evidence_support: int = 7) -> CriticReview:

@@ -1,7 +1,8 @@
 import json
 from typing import Any
 
-from app.llm.interface import LLMClient, LLMRequest
+from app.llm.interface import LLMClient
+from app.llm.langchain_adapter import FallbackParser, LLMClientRunnable, build_agent_prompt
 from app.schemas.data import DatasetProfile
 from app.schemas.evidence import EvidenceItem
 from app.schemas.knowledge import KnowledgeCard
@@ -31,6 +32,8 @@ Required JSON shape:
 Every gap must either cite supporting_evidence_ids from input or explicitly say evidence insufficient.
 """
 
+PROMPT = build_agent_prompt(SYSTEM_PROMPT)
+
 
 class GapFinderAgent:
     def __init__(self, llm: LLMClient | None = None) -> None:
@@ -48,16 +51,12 @@ class GapFinderAgent:
         if self.llm is None:
             return fallback_gaps
         fallback = {"gaps": fallback_gaps}
-        response = await self.llm.complete(
-            LLMRequest(
-                system=SYSTEM_PROMPT,
-                user=_build_user_prompt(knowledge_cards, evidence, data_profiles),
-                fallback=fallback,
-                run_id=run_id,
-                agent="gap_finder",
-            )
+        chain = (
+            PROMPT
+            | LLMClientRunnable(self.llm).bind(fallback=fallback, run_id=run_id, agent="gap_finder")
+            | FallbackParser(lambda content: _normalize_gaps(content, fallback_gaps, evidence), fallback_gaps)
         )
-        return _normalize_gaps(response.content, fallback_gaps, evidence)
+        return await chain.ainvoke({"user_prompt": _build_user_prompt(knowledge_cards, evidence, data_profiles)})
 
     def run(self, evidence: list[EvidenceItem]) -> list[dict]:
         verified = [item for item in evidence if item.verified]

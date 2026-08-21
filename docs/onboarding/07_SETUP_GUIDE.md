@@ -137,4 +137,3 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
 ### Windows 下 pytest 有临时目录清理警告
 
 本轮测试在全部通过后出现过 Windows 文件权限清理提示。若不影响退出码和测试结果，可记录后再手工检查临时目录；不要把该提示误判为业务测试失败。
-

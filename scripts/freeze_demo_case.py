@@ -19,6 +19,7 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.agents.report_writer_agent import ReportWriterAgent  # noqa: E402
+from app.agents.report_reviser_agent import ReportReviserAgent  # noqa: E402
 from app.evidence.selection import reportable_evidence  # noqa: E402
 from app.storage.workspace import RunWorkspace  # noqa: E402
 from app.tools.claim_verifier import ClaimVerifier  # noqa: E402
@@ -79,7 +80,7 @@ def accept_current_verified(run_id: str, data_dir: Path) -> ResearchRun:
     run.frozen_paper_ids = [
         paper.paper_id
         for paper in run.papers
-        if paper.verification_status == "verified" and paper.report_eligible and paper.human_decision != "rejected"
+        if paper.verification_status == "verified" and paper.report_eligible and paper.human_decision == "accepted"
     ]
     frozen_paper_ids = set(run.frozen_paper_ids)
     run.evidence_frozen = True
@@ -88,7 +89,7 @@ def accept_current_verified(run_id: str, data_dir: Path) -> ResearchRun:
         for item in run.evidence
         if item.verified
         and item.eligible_for_report
-        and item.human_decision != "rejected"
+        and item.human_decision == "accepted"
         and (not item.paper_id or item.paper_id in frozen_paper_ids)
     ]
     _sync_frozen_markers(run)
@@ -105,6 +106,16 @@ def accept_current_verified(run_id: str, data_dir: Path) -> ResearchRun:
             run.baseline_result_card,
         )
         run.claim_audit = ClaimVerifier().audit(run, run.report, reportable_evidence(run), selected)
+        if run.claim_audit.unsupported or run.claim_audit.weakly_supported:
+            run.report = ReportReviserAgent().run(
+                run,
+                run.report,
+                run.claim_audit,
+                reportable_evidence(run),
+                run.papers,
+                run.knowledge_cards,
+            )
+            run.claim_audit = ClaimVerifier().audit(run, run.report, reportable_evidence(run), selected)
         _write_markdown_report(run, data_dir)
     workspace = RunWorkspace(data_dir)
     run.workspace_path = str(workspace.ensure(run))

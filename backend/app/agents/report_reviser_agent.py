@@ -1,9 +1,10 @@
 import json
 
-from app.agents.report_writer_agent import _enforce_report_layers, _report_payload
+from app.agents.report_writer_agent import attach_formal_report_sections, _enforce_report_layers, _report_payload
 from app.evidence.audit import build_citation_audit
 from app.evidence.selection import reportable_evidence, reportable_knowledge_cards, reportable_papers
-from app.llm.interface import LLMClient, LLMRequest
+from app.llm.interface import LLMClient
+from app.llm.langchain_adapter import FallbackParser, LLMClientRunnable, build_agent_prompt
 from app.schemas.claim import ClaimAuditReport
 from app.schemas.evidence import EvidenceItem
 from app.schemas.experiment import ExperimentPlan
@@ -55,6 +56,23 @@ Revision rules:
 """
 
 
+SYSTEM_PROMPT = """You are the Report Reviser Agent for TrustSci-Agent.
+Revise the English formal scientific report after claim verification.
+Return JSON only. Do not invent references, citations, datasets, evidence ids, metrics, or completed experimental results.
+
+Rules:
+- Revise only english_report. Do not return chinese_report.
+- The final Chinese report is produced later by ReportTranslatorAgent from the final audited English report.
+- Scientific Methods must describe how to study the scientific gap: EIS, XRD, SEM/EBSD, DFT/MD, equivalent-circuit fitting, defect analysis, sintering controls, regression, ablation, and uncertainty analysis.
+- Agent workflow, citation audit, evidence ledger, and LLM metadata belong only in system_provenance.
+- Rewrite unsupported factual claims as limitations or expected validation outcomes.
+- Keep executed results separate from expected validation outcomes.
+- References are not accepted from the model. The backend attaches verified references only.
+"""
+
+PROMPT = build_agent_prompt(SYSTEM_PROMPT)
+
+
 class ReportReviserAgent:
     def __init__(self, llm: LLMClient | None = None) -> None:
         self.llm = llm
@@ -72,16 +90,16 @@ class ReportReviserAgent:
         fallback = self.run(run, report, audit, evidence, papers, knowledge_cards)
         if self.llm is None:
             return fallback
-        response = await self.llm.complete(
-            LLMRequest(
-                system=SYSTEM_PROMPT,
-                user=_build_revision_prompt(run, report, audit, evidence, hypothesis),
-                fallback={"report": _report_payload(fallback)},
-                run_id=run.run_id,
-                agent="report_reviser",
+        request_fallback = {"report": _report_payload(fallback)}
+        chain = (
+            PROMPT
+            | LLMClientRunnable(self.llm).bind(fallback=request_fallback, run_id=run.run_id, agent="report_reviser")
+            | FallbackParser(
+                lambda content: _normalize_revised_report(content, fallback, run, evidence, papers, knowledge_cards),
+                fallback,
             )
         )
-        return _normalize_revised_report(response.content, fallback, run, evidence, papers, knowledge_cards)
+        return await chain.ainvoke({"user_prompt": _build_revision_prompt(run, report, audit, evidence, hypothesis)})
 
     def run(
         self,
@@ -92,6 +110,7 @@ class ReportReviserAgent:
         papers: list[Paper],
         knowledge_cards: list[KnowledgeCard],
     ) -> ResearchReport:
+        run.claim_audit = audit
         revised = _enforce_report_layers(report)
         unsupported = [item for item in audit.items if item.status == "unsupported"]
         weak = [item for item in audit.items if item.status == "weakly_supported"]
@@ -109,7 +128,16 @@ class ReportReviserAgent:
         revised.references = reportable_papers(run, papers, evidence)
         revised.knowledge_cards = reportable_knowledge_cards(run, knowledge_cards)
         revised.citation_audit_log = build_citation_audit(papers)
-        return _enforce_report_layers(revised)
+        return attach_formal_report_sections(
+            _enforce_report_layers(revised),
+            run,
+            _selected_hypothesis(run),
+            revised.experiments,
+            evidence,
+            papers,
+            revised.data_profiles,
+            revised.baseline_result_card,
+        )
 
 
 def _build_revision_prompt(
@@ -142,11 +170,12 @@ def _build_revision_prompt(
         ],
         "instructions": [
             "Do not remove required report fields.",
+            "Revise english_report only. Do not return chinese_report.",
             "Do not add references; backend attaches verified references only.",
             "Downgrade unsupported factual wording into To validate statements.",
             "Keep methods, expected results, and proposed experiments verification pending unless backed by a result card.",
-            "Use Evidence-backed:, Inference:, and To validate: labels in major paragraphs and bullets.",
-            "Keep every revised field bilingual: English first, then 中文翻译： with a faithful Chinese translation.",
+            "Do not add Chinese translation labels or Chinese sections.",
+            "Scientific Methods must stay scientific and must not become agent workflow.",
         ],
     }
     return json.dumps(payload, ensure_ascii=False, indent=2)
@@ -182,10 +211,27 @@ def _normalize_revised_report(
             knowledge_cards=reportable_knowledge_cards(run, knowledge_cards),
             references=reportable_papers(run, papers, evidence),
             citation_audit_log=build_citation_audit(papers),
+            english_report=fallback.english_report,
+            chinese_report=fallback.chinese_report,
+            system_provenance=fallback.system_provenance,
         )
-        return _enforce_report_layers(report)
+        return attach_formal_report_sections(
+            _enforce_report_layers(report),
+            run,
+            _selected_hypothesis(run),
+            experiment,
+            evidence,
+            papers,
+            fallback.data_profiles,
+            fallback.baseline_result_card,
+            raw=raw,
+        )
     except Exception:
         return fallback
+
+
+def _selected_hypothesis(run: ResearchRun) -> Hypothesis | None:
+    return next((item for item in run.hypotheses if item.selected), run.hypotheses[0] if run.hypotheses else None)
 
 
 def _normalize_experiment(value: object, fallback: ExperimentPlan) -> ExperimentPlan:

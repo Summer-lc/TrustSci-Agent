@@ -5,6 +5,7 @@ services:
       - ./backend/app:/app/app
       - ./backend/tests:/app/tests
       - ./data:/app/data
+      - ./experiments:/app/experiments
     environment:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001}
       BROWSER_WORKER_URL: ${BROWSER_WORKER_URL:-http://browser-worker:8010}

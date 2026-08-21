@@ -14,15 +14,15 @@ export function ScientificDataPanel({
 
   return (
     <section className="panel span-6">
-      <h2>科研数据 / Scientific Data</h2>
+      <h2>科研数据</h2>
       <div className="list">
         {shownProfiles.slice(0, 4).map((profile) => (
           <article className="item" key={profile.name}>
             <div className="item-title">{profile.name}</div>
             <div className="item-meta">
-              {profile.source} · {profile.rows ? `${profile.rows} rows` : profile.availability}
+              {profile.source} · {profile.rows ? `${profile.rows} 行` : profile.availability}
             </div>
-            <p className="muted">{profile.target || "no target"} · {profile.task_type}</p>
+            <p className="muted">{profile.target || "无目标字段"} · {profile.task_type}</p>
           </article>
         ))}
         {shownBaseline && (
@@ -34,7 +34,7 @@ export function ScientificDataPanel({
             <p className="muted">{shownBaseline.result_summary}</p>
           </article>
         )}
-        {!shownProfiles.length && <p className="muted">暂无数据 profile / No data profile yet.</p>}
+        {!shownProfiles.length && <p className="muted">暂无数据画像。</p>}
       </div>
     </section>
   );

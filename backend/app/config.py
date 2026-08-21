@@ -24,9 +24,17 @@ class Settings(BaseSettings):
     semantic_scholar_api_key: str = ""
     max_papers: int = Field(default=6, ge=1, le=20)
     materials_project_api_key: str = ""
+    github_token: str = ""
     browser_worker_url: str = "http://browser-worker:8010"
 
+    # Orchestration engine switch. "classic" keeps the hand-written
+    # ScientistWorkflow (default, stable); "langgraph" drives the LangGraph
+    # StateGraph implementation. See app/workflows/langgraph_workflow.py.
+    workflow_engine: str = "classic"
+
     data_dir: Path = Path("data")
+    experiments_dir: Path = Path("experiments/seismic_event_classification")
+    code_experiment_timeout_seconds: int = 120
 
     @property
     def cors_origin_list(self) -> list[str]:

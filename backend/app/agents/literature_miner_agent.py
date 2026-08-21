@@ -1,7 +1,8 @@
 import json
 from typing import Any
 
-from app.llm.interface import LLMClient, LLMRequest
+from app.llm.interface import LLMClient
+from app.llm.langchain_adapter import FallbackParser, LLMClientRunnable, build_agent_prompt
 from app.schemas.evidence import EvidenceItem
 from app.schemas.knowledge import KnowledgeCard
 from app.schemas.paper import Paper
@@ -37,6 +38,8 @@ Required JSON shape:
 Every card must include at least one evidence_id and one paper_id from the input.
 """
 
+PROMPT = build_agent_prompt(SYSTEM_PROMPT)
+
 
 class LiteratureMinerAgent:
     def __init__(self, llm: LLMClient | None = None) -> None:
@@ -54,16 +57,15 @@ class LiteratureMinerAgent:
         if self.llm is None:
             return fallback_cards
         fallback = {"knowledge_cards": [card.model_dump() for card in fallback_cards]}
-        response = await self.llm.complete(
-            LLMRequest(
-                system=SYSTEM_PROMPT,
-                user=_build_user_prompt(evidence, papers, perspectives),
-                fallback=fallback,
-                run_id=run_id,
-                agent="literature_miner",
+        chain = (
+            PROMPT
+            | LLMClientRunnable(self.llm).bind(fallback=fallback, run_id=run_id, agent="literature_miner")
+            | FallbackParser(
+                lambda content: _normalize_qwen_cards(content, fallback_cards, evidence, papers),
+                fallback_cards,
             )
         )
-        return _normalize_qwen_cards(response.content, fallback_cards, evidence, papers)
+        return await chain.ainvoke({"user_prompt": _build_user_prompt(evidence, papers, perspectives)})
 
     def run(
         self,

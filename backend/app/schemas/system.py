@@ -18,6 +18,7 @@ class PublicConfigResponse(BaseModel):
     semantic_scholar_configured: bool
     arxiv_available: bool = True
     cors_origins: list[str]
+    workflow_engine: str = "classic"
 
 
 class QwenPingResponse(BaseModel):

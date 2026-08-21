@@ -7,12 +7,12 @@ export function WorkspacePanel({ run }: { run: ResearchRun | null }) {
 
   return (
     <section className="panel span-12 workspace-panel">
-      <h2><FolderArchive size={16} /> 工作区文件 / Research Workspace</h2>
+      <h2><FolderArchive size={16} /> 工作区文件</h2>
       {run?.workspace_path ? (
         <details className="workspace-details">
           <summary>
             <span>{run.workspace_path}</span>
-            <span className="badge">{entries.length} artifacts</span>
+            <span className="badge">{entries.length} 个产物</span>
           </summary>
           <div className="list workspace-artifacts">
             {entries.map(([name, path]) => (
@@ -24,7 +24,7 @@ export function WorkspacePanel({ run }: { run: ResearchRun | null }) {
           </div>
         </details>
       ) : (
-        <p className="muted">暂无工作区 / No workspace yet.</p>
+        <p className="muted">暂无工作区。</p>
       )}
     </section>
   );

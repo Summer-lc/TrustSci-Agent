@@ -120,4 +120,3 @@
 6. `code_safety.py`、`sandbox_executor.py`、实验 harness：理解可执行实验。
 7. `Workbench.tsx`、`api.ts`、`workbench.ts`：理解界面如何消费状态。
 8. 选择一个后端测试和一个前端测试，沿断言反向阅读实现。
-

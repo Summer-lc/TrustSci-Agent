@@ -31,13 +31,15 @@ async def capture(payload: CaptureRequest) -> dict:
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(headless=True)
         page = await browser.new_page(viewport={"width": 1440, "height": 1000})
-        response = await page.goto(payload.url, wait_until="domcontentloaded", timeout=45000)
-        await page.wait_for_timeout(1000)
+        response = await page.goto(payload.url, wait_until="domcontentloaded", timeout=15000)
+        await page.wait_for_timeout(250)
         final_url = page.url
         title = await page.title()
         html = await page.content()
-        screenshot_path = trace_dir / f"{trace_id}.png"
-        await page.screenshot(path=str(screenshot_path), full_page=True)
+        blocked_reason = _detect_access_challenge(title, html)
+        screenshot_path = trace_dir / f"{trace_id}.png" if not blocked_reason else None
+        if screenshot_path:
+            await page.screenshot(path=str(screenshot_path), full_page=False, timeout=10000)
         await browser.close()
 
     status_code = response.status if response else None
@@ -63,11 +65,39 @@ async def capture(payload: CaptureRequest) -> dict:
         "status_code": status_code,
         "title": title,
         "html_path": str(html_path),
-        "screenshot_path": str(screenshot_path),
+        "screenshot_path": str(screenshot_path) if screenshot_path else "",
+        "blocked_reason": blocked_reason,
         "links": links[:50],
         "pdf_links": pdf_links,
         "downloaded_pdfs": downloaded_pdfs,
     }
+
+
+def _detect_access_challenge(title: str, html: str) -> str | None:
+    normalized_title = " ".join(title.lower().split())
+    title_markers = (
+        "just a moment",
+        "attention required",
+        "verify you are human",
+        "security verification",
+        "人机验证",
+        "安全验证",
+    )
+    if any(marker in normalized_title for marker in title_markers):
+        return "human_verification"
+
+    normalized_html = html.lower()
+    html_markers = (
+        "cf-chl-",
+        "challenge-platform",
+        "verify you are human",
+        "g-recaptcha",
+        "hcaptcha-container",
+        "人机验证",
+    )
+    if any(marker in normalized_html for marker in html_markers):
+        return "human_verification"
+    return None
 
 
 async def _download_pdfs(pdf_links: list[dict], trace_dir: Path, trace_id: str) -> list[dict]:

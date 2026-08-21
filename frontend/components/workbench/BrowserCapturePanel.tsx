@@ -22,12 +22,12 @@ export function BrowserCapturePanel({
 }) {
   return (
     <section className="panel span-6">
-      <h2><Globe size={16} /> 浏览器采集 / Browser Capture</h2>
+      <h2><Globe size={16} /> 浏览器采集</h2>
       <div className="inline-form">
         <input className="input" value={url} onChange={(event) => onUrlChange(event.target.value)} />
         <button className="secondary" onClick={onCapture} disabled={busy}>
           {busy ? <RefreshCw size={15} /> : <Globe size={15} />}
-          采集 / Capture
+          采集
         </button>
       </div>
       {error && <p className="muted warn-text">{error}</p>}
@@ -35,15 +35,16 @@ export function BrowserCapturePanel({
         <div className="dense">
           <div className="item-title">{result.title}</div>
           <div className="item-meta">{result.domain} · {result.status_code || "n/a"}</div>
-          <p className="muted">HTML {result.html_path}</p>
-          <p className="muted">Screenshot {result.screenshot_path}</p>
-          <p className="muted">PDF links {result.pdf_links.length} · downloads {result.downloaded_pdfs.length}</p>
+          {result.blocked_reason && <p className="muted warn-text">来源网站要求人机验证，已停止抓取。请在浏览器中直接打开该网址。</p>}
+          <p className="muted">HTML：{result.html_path}</p>
+          {result.screenshot_path && <p className="muted">截图：{result.screenshot_path}</p>}
+          <p className="muted">PDF 链接 {result.pdf_links.length} · 已下载 {result.downloaded_pdfs.length}</p>
           {result.downloaded_pdfs.map((pdf, index) => (
             <div className="item compact" key={`${pdf.path || pdf.url || index}`}>
               <div className="item-meta">{String(pdf.path || pdf.url || "PDF")}</div>
               {"path" in pdf && typeof pdf.path === "string" && (
                 <button className="secondary" onClick={() => onIngestPdf(pdf.path as string)} disabled={!canIngestPdf}>
-                  入账证据 / Ingest
+                  入账为证据
                 </button>
               )}
             </div>

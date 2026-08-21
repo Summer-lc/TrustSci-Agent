@@ -21,6 +21,8 @@ def test_report_writer_uses_only_verified_references() -> None:
         doi="10.1234/verified",
         verification_status="verified",
         verified_by=["openalex", "crossref"],
+        verification_method="crossref_doi",
+        verification_confidence=0.91,
         report_eligible=True,
     )
     rejected = Paper(
@@ -43,12 +45,12 @@ def test_report_writer_uses_only_verified_references() -> None:
     )
 
     assert report.references == [verified]
+    assert report.english_report is not None
+    assert report.chinese_report is None
+    assert report.system_provenance is not None
+    assert report.english_report.references == [verified]
     assert "Rejected paper" not in [paper.title for paper in report.references]
     assert any("p_rejected: rejected" in line for line in report.citation_audit_log)
-    assert "baseline result card" in report.results
-    assert report.paper_abstract
-    assert report.technical_details
-    assert report.knowledge_cards == [_knowledge_card()]
 
 
 def test_report_writer_marks_results_pending_without_verified_inputs() -> None:
@@ -74,49 +76,77 @@ def test_report_writer_marks_results_pending_without_verified_inputs() -> None:
     )
 
     assert report.references == []
+    assert report.english_report is not None
+    assert report.english_report.references == []
     assert "verification pending" in report.problem_statement
     assert "verification pending" in report.results
+    assert "No executed scientific experiment" in report.english_report.results.executed_results
     assert any("p_unverified: candidate" in line for line in report.citation_audit_log)
 
 
-def test_report_writer_fallback_outputs_clean_bilingual_text() -> None:
-    run = ResearchRun(
-        domain="energy_materials",
-        question="Generate a bilingual trustworthy report.",
-        constraints=ResearchConstraints(max_papers=1),
-    )
-    report = ReportWriterAgent().run(
-        run,
-        _hypothesis(),
-        _experiment(),
-        [_evidence()],
-        [
-            Paper(
-                paper_id="p_verified",
-                title="Verified solid electrolyte paper",
-                verification_status="verified",
-                report_eligible=True,
-            )
-        ],
-        [_knowledge_card()],
-        [_data_profile()],
-        _baseline_card(),
-    )
+def test_report_writer_outputs_formal_english_source_report() -> None:
+    report = _report_with_verified_inputs()
 
-    combined = "\n".join(
-        [
-            report.problem_statement,
-            report.rationale,
-            report.paper_abstract,
-            report.results,
-            *report.technical_details,
-            *report.methods,
+    assert report.english_report is not None
+    assert report.chinese_report is None
+    assert report.system_provenance is not None
+
+    english = report.english_report
+    assert english.paper_title
+    assert english.paper_abstract
+    assert english.problem_statement
+    assert english.rationale
+    assert english.technical_details
+    assert english.datasets.source
+    assert english.datasets.target
+    assert english.methods
+    assert english.experiments.baselines
+    assert english.experiments.metrics
+    assert english.experiments.design
+    assert english.results.executed_results
+    assert english.results.expected_validation_outcomes
+    assert english.limitations_and_risk_controls
+    assert "Chinese translation" not in english.paper_abstract
+    assert "中文翻译" not in english.methods
+
+
+def test_formal_methods_are_scientific_not_agent_workflow() -> None:
+    report = _report_with_verified_inputs()
+    assert report.english_report is not None
+
+    methods = report.english_report.methods.lower()
+    assert any(
+        term in methods
+        for term in [
+            "eis",
+            "xrd",
+            "sem",
+            "ebsd",
+            "dft",
+            "md",
+            "equivalent-circuit",
+            "grain-boundary",
+            "defect",
+            "sintering",
         ]
     )
-    assert "中文翻译：" in combined
-    assert "鐩" not in combined
-    assert "绯荤粺" not in combined
-    assert "鍙" not in combined
+    assert "literature_router" not in methods
+    assert "evidence_ledger" not in methods
+    assert "workflow_plan" not in methods
+    assert "critic_review" not in methods
+    assert "report_export" not in methods
+
+
+def test_formal_results_separate_executed_and_expected_outcomes() -> None:
+    report = _report_with_verified_inputs()
+    assert report.english_report is not None
+
+    executed = report.english_report.results.executed_results.lower()
+    expected = report.english_report.results.expected_validation_outcomes.lower()
+    assert "solid_electrolyte_mean_baseline" in executed
+    assert "not a completed materials-discovery conclusion" in executed
+    assert "expected validation targets" in expected
+    assert "not a completed materials-discovery conclusion" not in expected
 
 
 def test_report_writer_respects_frozen_evidence_set() -> None:
@@ -134,6 +164,8 @@ def test_report_writer_respects_frozen_evidence_set() -> None:
         verification_status="verified",
         report_eligible=True,
     )
+    frozen_evidence = _evidence()
+    frozen_evidence.human_decision = "accepted"
     extra_evidence = EvidenceItem(
         evidence_id="e2",
         paper_id="p_extra",
@@ -148,13 +180,14 @@ def test_report_writer_respects_frozen_evidence_set() -> None:
         run,
         _hypothesis(),
         _experiment(),
-        [_evidence(), extra_evidence],
+        [frozen_evidence, extra_evidence],
         [
             Paper(
                 paper_id="p_verified",
                 title="Verified solid electrolyte paper",
                 verification_status="verified",
                 report_eligible=True,
+                human_decision="accepted",
             ),
             extra_paper,
         ],
@@ -177,7 +210,8 @@ def test_report_writer_respects_frozen_evidence_set() -> None:
 
     assert [paper.paper_id for paper in report.references] == ["p_verified"]
     assert [card.card_id for card in report.knowledge_cards] == ["kc_001"]
-    assert "1 verified evidence items" in report.problem_statement
+    assert report.english_report is not None
+    assert [paper.paper_id for paper in report.english_report.references] == ["p_verified"]
 
 
 def test_report_writer_respects_frozen_citation_set() -> None:
@@ -193,6 +227,7 @@ def test_report_writer_respects_frozen_citation_set() -> None:
         title="Frozen verified paper",
         verification_status="verified",
         report_eligible=True,
+        human_decision="accepted",
     )
     extra_paper = Paper(
         paper_id="p_extra",
@@ -205,7 +240,16 @@ def test_report_writer_respects_frozen_citation_set() -> None:
         _hypothesis(),
         _experiment(),
         [
-            _evidence(),
+            EvidenceItem(
+                evidence_id="e1",
+                paper_id="p_verified",
+                claim="Substitution can alter transport bottlenecks.",
+                source_title="Verified solid electrolyte paper",
+                quote_or_summary="A verified summary from the evidence ledger.",
+                verified=True,
+                eligible_for_report=True,
+                human_decision="accepted",
+            ),
             EvidenceItem(
                 evidence_id="e2",
                 paper_id="p_extra",
@@ -223,7 +267,35 @@ def test_report_writer_respects_frozen_citation_set() -> None:
     )
 
     assert [paper.paper_id for paper in report.references] == ["p_verified"]
-    assert "1 verified evidence items" in report.problem_statement
+    assert report.english_report is not None
+    assert [paper.paper_id for paper in report.english_report.references] == ["p_verified"]
+
+
+def _report_with_verified_inputs():
+    run = ResearchRun(
+        domain="energy_materials",
+        question="Generate a bilingual trustworthy report.",
+        constraints=ResearchConstraints(max_papers=1),
+    )
+    return ReportWriterAgent().run(
+        run,
+        _hypothesis(),
+        _experiment(),
+        [_evidence()],
+        [
+            Paper(
+                paper_id="p_verified",
+                title="Verified solid electrolyte paper",
+                verification_status="verified",
+                verification_method="openalex_title",
+                verification_confidence=0.92,
+                report_eligible=True,
+            )
+        ],
+        [_knowledge_card()],
+        [_data_profile()],
+        _baseline_card(),
+    )
 
 
 def _hypothesis() -> Hypothesis:

@@ -68,4 +68,3 @@ TrustSci-Agent 是一个基于阿里云百炼 Qwen 的本地优先多智能体 A
 - [演示冻结流程](../DEMO_FREEZE.md)
 - [开发工作流](../DEVELOPMENT_WORKFLOW.md)
 - [提交检查单](../SUBMISSION_CHECKLIST.md)
-

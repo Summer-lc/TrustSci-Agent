@@ -17,18 +17,18 @@ export function CitationVerifier({ run, busy = false, onDecision, onFreeze, onUn
   return (
     <section className="panel span-6">
       <div className="panel-heading">
-        <h2><ShieldCheck size={16} /> 引用核验 / Citation Verifier</h2>
+        <h2><ShieldCheck size={16} /> 引用核验</h2>
         <div className="actions">
           <span className={`badge ${run?.citation_frozen ? "good" : "warn"}`}>
-            {run?.citation_frozen ? `已冻结 / frozen ${frozenCount}` : "待冻结 / open"}
+            {run?.citation_frozen ? `已冻结 ${frozenCount}` : "待冻结"}
           </span>
           {run?.citation_frozen ? (
             <button className="secondary" onClick={onUnfreeze} disabled={busy || !run}>
-              <RotateCcw size={14} /> 解冻 / Unfreeze
+              <RotateCcw size={14} /> 解冻
             </button>
           ) : (
             <button className="secondary" onClick={onFreeze} disabled={busy || !run || !run.papers.length}>
-              <Lock size={14} /> 冻结 / Freeze
+              <Lock size={14} /> 冻结
             </button>
           )}
         </div>
@@ -36,7 +36,7 @@ export function CitationVerifier({ run, busy = false, onDecision, onFreeze, onUn
       {report && (
         <div className="item compact">
           <div className="item-meta">
-            verified {report.verified}/{report.total} · integrity {report.integrity_score}
+            已核验 {report.verified}/{report.total} · 完整性 {report.integrity_score}
           </div>
         </div>
       )}
@@ -45,23 +45,23 @@ export function CitationVerifier({ run, busy = false, onDecision, onFreeze, onUn
           <article className="item" key={paper.paper_id}>
             <div className="item-title">{paper.title}</div>
             <div className="item-meta">
-              {paper.year || "n.d."} · {paper.source_api || "source"} · DOI {paper.doi || "N/A"}
+              {paper.year || "未知年份"} · {paper.source_api || "未知来源"} · DOI {paper.doi || "无"}
             </div>
             <div className="item-meta">
-              {paper.verification_method || "pending"} · confidence {paper.verification_confidence ?? "n/a"}
+              {paper.verification_method || "待核验"} · 置信度 {paper.verification_confidence ?? "n/a"}
               {paper.matched_source ? ` · ${paper.matched_source}` : ""}
             </div>
             <div className="item-actions">
               <span className={`badge ${paper.verification_status === "verified" ? "good" : "warn"}`}>
-                {paper.frozen ? "frozen" : paper.report_eligible ? "report" : "audit"}
+                {paper.frozen ? "已冻结" : paper.report_eligible ? "可进报告" : "仅审计"}
               </span>
               <span className={`badge ${paper.human_decision === "rejected" ? "warn" : paper.human_decision === "accepted" ? "good" : ""}`}>
-                {paper.human_decision}
+                {decisionLabel(paper.human_decision)}
               </span>
-              <span className="badge">{paper.verification_status}</span>
+              <span className="badge">{verificationLabel(paper.verification_status)}</span>
               <button
                 className="icon-button"
-                title="接受引用 / Approve citation"
+                title="接受引用"
                 onClick={() => onDecision(paper.paper_id, "accepted")}
                 disabled={busy || paper.human_decision === "accepted" || paper.verification_status !== "verified"}
               >
@@ -69,7 +69,7 @@ export function CitationVerifier({ run, busy = false, onDecision, onFreeze, onUn
               </button>
               <button
                 className="icon-button danger"
-                title="拒绝引用 / Reject citation"
+                title="拒绝引用"
                 onClick={() => onDecision(paper.paper_id, "rejected")}
                 disabled={busy || paper.human_decision === "rejected"}
               >
@@ -78,8 +78,22 @@ export function CitationVerifier({ run, busy = false, onDecision, onFreeze, onUn
             </div>
           </article>
         ))}
-        {!run?.papers.length && <p className="muted">暂无候选论文 / No candidate papers yet.</p>}
+        {!run?.papers.length && <p className="muted">暂无候选论文。</p>}
       </div>
     </section>
   );
+}
+
+function decisionLabel(decision: string) {
+  if (decision === "accepted") return "已接受";
+  if (decision === "rejected") return "已拒绝";
+  return "待处理";
+}
+
+function verificationLabel(status: string) {
+  if (status === "verified") return "已核验";
+  if (status === "hallucinated") return "疑似幻觉";
+  if (status === "partial") return "部分匹配";
+  if (status === "suspicious") return "可疑";
+  return status || "未知";
 }

@@ -83,6 +83,28 @@ async def test_planner_agent_falls_back_for_invalid_llm_content() -> None:
 
 
 @pytest.mark.asyncio
+async def test_planner_agent_uses_seismic_specific_fallback() -> None:
+    agent = PlannerAgent(FakeLLM("not-json"))
+    run = ResearchRun(
+        domain="seismic_event_classification",
+        question=(
+            "Research verifiable deep learning improvements for seismic event classification; "
+            "labels may include earthquakes, blasts, collapse events, noise, or other task-specific classes."
+        ),
+        constraints=ResearchConstraints(max_papers=6),
+    )
+
+    plan = await agent.run(run)
+
+    joined_queries = " ".join(plan["search_queries"]).lower()
+    assert "seismic event classification" in joined_queries
+    assert "earthquake explosion" in joined_queries
+    assert "phasenet" in joined_queries
+    assert "solid electrolyte" not in joined_queries
+    assert any(item["role"] == "Seismologist" for item in plan["perspectives"])
+
+
+@pytest.mark.asyncio
 async def test_planner_agent_acceptance_with_qwen_fallback_logs_call(tmp_path) -> None:
     run = ResearchRun(
         domain="energy_materials",

@@ -27,6 +27,7 @@ async def public_config() -> PublicConfigResponse:
         semantic_scholar_configured=bool(settings.semantic_scholar_api_key),
         arxiv_available=True,
         cors_origins=settings.cors_origin_list,
+        workflow_engine=settings.workflow_engine,
     )
 
 

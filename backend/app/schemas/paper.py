@@ -15,6 +15,12 @@ class Paper(BaseModel):
     arxiv_id: str | None = None
     source_url: str | None = None
     pdf_url: str | None = None
+    code_url: str | None = None
+    paper_role: str = "unknown"  # method_model | dataset_benchmark | survey_review | application_only | unknown
+    seismic_relevant: bool = False
+    baseline_eligible: bool = False
+    baseline_rejection_reason: str | None = None
+    code_url_source: str | None = None  # abstract | pdf
     abstract: str = ""
     venue: str | None = None
     work_type: str | None = None

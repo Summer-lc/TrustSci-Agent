@@ -1,6 +1,7 @@
 import json
 
-from app.llm.interface import LLMClient, LLMRequest
+from app.llm.interface import LLMClient
+from app.llm.langchain_adapter import FallbackParser, LLMClientRunnable, build_agent_prompt
 from app.schemas.experiment import ExperimentPlan
 from app.schemas.evidence import EvidenceItem
 from app.schemas.hypothesis import Hypothesis
@@ -29,6 +30,8 @@ Required JSON shape:
 Datasets must come from data_profiles unless clearly marked to be collected.
 """
 
+PROMPT = build_agent_prompt(SYSTEM_PROMPT)
+
 
 class ExperimentDesignerAgent:
     def __init__(self, llm: LLMClient | None = None) -> None:
@@ -45,16 +48,13 @@ class ExperimentDesignerAgent:
         fallback = self.run(selected, data_profiles)
         if self.llm is None:
             return fallback
-        response = await self.llm.complete(
-            LLMRequest(
-                system=SYSTEM_PROMPT,
-                user=_build_user_prompt(selected, data_profiles or [], evidence or []),
-                fallback={"experiment_plan": fallback.model_dump()},
-                run_id=run_id,
-                agent="experiment_designer",
-            )
+        request_fallback = {"experiment_plan": fallback.model_dump()}
+        chain = (
+            PROMPT
+            | LLMClientRunnable(self.llm).bind(fallback=request_fallback, run_id=run_id, agent="experiment_designer")
+            | FallbackParser(lambda content: _normalize_plan(content, fallback, data_profiles or []), fallback)
         )
-        return _normalize_plan(response.content, fallback, data_profiles or [])
+        return await chain.ainvoke({"user_prompt": _build_user_prompt(selected, data_profiles or [], evidence or [])})
 
     def run(self, selected: Hypothesis | None, data_profiles: list[DatasetProfile] | None = None) -> ExperimentPlan:
         target = selected.statement if selected else "Validate the selected AI-generated materials hypothesis."

@@ -1,6 +1,7 @@
 import json
 
-from app.llm.interface import LLMClient, LLMRequest
+from app.llm.interface import LLMClient
+from app.llm.langchain_adapter import FallbackParser, LLMClientRunnable, build_agent_prompt
 from app.schemas.evidence import EvidenceItem
 from app.schemas.hypothesis import CriticReview, Hypothesis, ReviewerComment
 
@@ -37,6 +38,8 @@ Required JSON shape:
 Each hypothesis needs at least four reviewer comments covering domain, ML, experimental validation, and skeptical reviewer roles.
 """
 
+PROMPT = build_agent_prompt(SYSTEM_PROMPT)
+
 
 class CriticAgent:
     def __init__(self, llm: LLMClient | None = None) -> None:
@@ -62,16 +65,12 @@ class CriticAgent:
                 for hypothesis in fallback
             ]
         }
-        response = await self.llm.complete(
-            LLMRequest(
-                system=SYSTEM_PROMPT,
-                user=_build_user_prompt(hypotheses, evidence),
-                fallback=fallback_payload,
-                run_id=run_id,
-                agent="critic_reviewer",
-            )
+        chain = (
+            PROMPT
+            | LLMClientRunnable(self.llm).bind(fallback=fallback_payload, run_id=run_id, agent="critic_reviewer")
+            | FallbackParser(lambda content: _apply_reviews(content, hypotheses, fallback), fallback)
         )
-        return _apply_reviews(response.content, hypotheses, fallback)
+        return await chain.ainvoke({"user_prompt": _build_user_prompt(hypotheses, evidence)})
 
     def run(self, hypotheses: list[Hypothesis]) -> list[Hypothesis]:
         reviewed: list[Hypothesis] = []

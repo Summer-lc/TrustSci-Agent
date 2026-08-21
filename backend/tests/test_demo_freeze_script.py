@@ -133,6 +133,7 @@ def _paper() -> Paper:
         doi="10.1234/demo",
         verification_status="verified",
         report_eligible=True,
+        human_decision="accepted",
     )
 
 
@@ -145,6 +146,7 @@ def _evidence() -> EvidenceItem:
         quote_or_summary="A verified summary from the evidence ledger.",
         verified=True,
         eligible_for_report=True,
+        human_decision="accepted",
     )
 
 

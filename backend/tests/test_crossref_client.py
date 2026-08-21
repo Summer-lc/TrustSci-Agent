@@ -94,3 +94,41 @@ async def test_crossref_marks_mismatch_and_failures_suspicious() -> None:
         Paper(paper_id="W_FAIL", title="A paper", doi="10.1000/fail")
     )
     assert failed.verification_status == "suspicious"
+
+
+@pytest.mark.asyncio
+async def test_crossref_search_returns_normalized_papers() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/works"
+        assert request.url.params["query.bibliographic"] == "seismic event classification deep learning"
+        return httpx.Response(
+            200,
+            json={
+                "message": {
+                    "items": [
+                        {
+                            "DOI": "10.1109/example",
+                            "title": ["Deep learning for seismic event classification"],
+                            "container-title": ["IEEE Transactions on Geoscience and Remote Sensing"],
+                            "type": "journal-article",
+                            "is-referenced-by-count": 42,
+                            "issued": {"date-parts": [[2023]]},
+                            "author": [{"given": "Ada", "family": "Quake"}],
+                            "URL": "https://doi.org/10.1109/example",
+                            "abstract": "<jats:p>Seismic waveform classification with neural networks.</jats:p>",
+                        }
+                    ]
+                }
+            },
+        )
+
+    client = CrossrefClient(Settings(), transport=httpx.MockTransport(handler))
+
+    papers = await client.search("seismic event classification deep learning", 3)
+
+    assert len(papers) == 1
+    assert papers[0].paper_id == "crossref:10_1109_example"
+    assert papers[0].doi == "10.1109/example"
+    assert papers[0].source_api == "crossref"
+    assert papers[0].venue == "IEEE Transactions on Geoscience and Remote Sensing"
+    assert "Seismic waveform" in papers[0].abstract

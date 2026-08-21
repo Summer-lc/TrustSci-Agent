@@ -123,4 +123,3 @@ data/workspace/run_xxx/
 - `comparison_grade=degraded` 表示可信 baseline 不足，报告应限制主张。
 
 完整接口列表见 [API 文档](../API.md)。
-

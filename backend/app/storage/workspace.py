@@ -2,7 +2,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from app.schemas.run import ResearchRun
+from app.schemas.common import RunStatus
+from app.schemas.run import ResearchRun, build_run_display_name
 
 
 class RunWorkspace:
@@ -68,10 +69,13 @@ class RunWorkspace:
             snapshots.append(
                 {
                     "run_id": data.get("run_id", run_dir.name),
+                    "display_name": data.get("display_name") or build_run_display_name(data.get("question", "")),
                     "domain": data.get("domain", ""),
                     "question": data.get("question", ""),
                     "status": data.get("status", "unknown"),
                     "current_stage": data.get("current_stage", "unknown"),
+                    "control_action": data.get("control_action", "none"),
+                    "pause_reason": data.get("pause_reason"),
                     "updated_at": data.get("updated_at"),
                     "workspace_path": str(run_dir),
                 }
@@ -89,6 +93,12 @@ class RunWorkspace:
         run = ResearchRun.model_validate(data)
         if run.run_id != run_id:
             raise ValueError(f"workspace snapshot run_id mismatch for {run_id}")
+        if not run.display_name:
+            run.display_name = build_run_display_name(run.question)
+        if run.status == RunStatus.running and run.control_action == "pause":
+            run.status = RunStatus.paused
+            run.pause_reason = "user"
+            run.control_action = "none"
         run.workspace_path = str(self.ensure(run))
         run.workspace_artifacts = self.write_snapshot(run)
         return run

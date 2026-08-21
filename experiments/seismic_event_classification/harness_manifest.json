@@ -1,0 +1,7 @@
+{
+  "model_family": "sklearn",
+  "harness_version": "seismic_sklearn_v1",
+  "max_repair_rounds": 3,
+  "baseline_source": "harness_trivial",
+  "acceptance_gate": ["tests_pass", "metrics_generated", "baseline_comparison_written"]
+}

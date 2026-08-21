@@ -1,7 +1,8 @@
 import re
 import json
 
-from app.llm.interface import LLMClient, LLMRequest
+from app.llm.interface import LLMClient
+from app.llm.langchain_adapter import FallbackParser, LLMClientRunnable, build_agent_prompt
 from app.schemas.claim import ClaimAuditItem, ClaimAuditReport
 from app.schemas.evidence import EvidenceItem
 from app.schemas.hypothesis import Hypothesis
@@ -34,6 +35,8 @@ Rules:
 - If a claim has no valid matched_evidence_ids, its status must be unsupported.
 """
 
+PROMPT = build_agent_prompt(SYSTEM_PROMPT)
+
 
 class ClaimVerifier:
     def __init__(self, llm: LLMClient | None = None) -> None:
@@ -49,16 +52,13 @@ class ClaimVerifier:
         fallback = self.audit(run, report, evidence, hypothesis)
         if self.llm is None:
             return fallback
-        response = await self.llm.complete(
-            LLMRequest(
-                system=SYSTEM_PROMPT,
-                user=_build_user_prompt(fallback.items, evidence),
-                fallback={"claim_audits": [item.model_dump() for item in fallback.items]},
-                run_id=run.run_id,
-                agent="claim_verifier",
-            )
+        request_fallback = {"claim_audits": [item.model_dump() for item in fallback.items]}
+        chain = (
+            PROMPT
+            | LLMClientRunnable(self.llm).bind(fallback=request_fallback, run_id=run.run_id, agent="claim_verifier")
+            | FallbackParser(lambda content: _normalize_qwen_audit(content, fallback, evidence), fallback)
         )
-        return _normalize_qwen_audit(response.content, fallback, evidence)
+        return await chain.ainvoke({"user_prompt": _build_user_prompt(fallback.items, evidence)})
 
     def audit(
         self,
@@ -99,6 +99,25 @@ def _candidate_claims(
     report: ResearchReport,
     hypothesis: Hypothesis | None,
 ) -> list[str]:
+    if report.english_report is not None:
+        raw = [
+            report.english_report.problem_statement,
+            report.english_report.rationale,
+            report.english_report.results.executed_results,
+        ]
+        raw.extend([card.finding for card in report.knowledge_cards[:3]])
+        claims: list[str] = []
+        for value in raw:
+            if not value:
+                continue
+            for sentence in _claim_sentences(str(value)):
+                if len(sentence) < 24:
+                    continue
+                if _is_validation_statement(sentence):
+                    continue
+                claims.append(sentence[:420])
+        return _dedupe(claims)[:10]
+
     raw = [
         report.problem_statement,
         report.rationale,
@@ -318,12 +337,24 @@ def _is_validation_statement(text: str) -> bool:
             "verification pending",
             "requires validation",
             "require validation",
+            "planned validation",
+            "validation target",
+            "validation targets",
             "will test",
             "we propose",
             "proposed experiment",
             "planned validation",
+            "planned collection",
+            "remains a hypothesis",
+            "mechanism remains a hypothesis",
+            "hypothesis to validate",
             "not a completed discovery",
+            "not a completed materials-discovery conclusion",
             "not as an already-proven",
+            "no executed scientific experiment",
+            "unverified mechanism",
+            "formal references",
+            "audit appendix",
         ]
     )
 

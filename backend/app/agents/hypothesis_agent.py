@@ -1,7 +1,8 @@
 import json
 from typing import Any
 
-from app.llm.interface import LLMClient, LLMRequest
+from app.llm.interface import LLMClient
+from app.llm.langchain_adapter import FallbackParser, LLMClientRunnable, build_agent_prompt
 from app.schemas.data import DatasetProfile
 from app.schemas.evidence import EvidenceItem
 from app.schemas.hypothesis import Hypothesis
@@ -31,6 +32,8 @@ Required JSON shape:
 Each hypothesis must be verifiable and must either include supporting_evidence_ids or explicitly say evidence insufficient.
 """
 
+PROMPT = build_agent_prompt(SYSTEM_PROMPT)
+
 
 class HypothesisAgent:
     def __init__(self, llm: LLMClient | None = None) -> None:
@@ -43,21 +46,21 @@ class HypothesisAgent:
         data_profiles: list[DatasetProfile],
         *,
         run_id: str | None = None,
+        avoid_prior_art: list[str] | None = None,
     ) -> list[Hypothesis]:
         fallback_hypotheses = self.run(gaps)
         if self.llm is None:
             return fallback_hypotheses
         fallback = {"hypotheses": [hypothesis.model_dump() for hypothesis in fallback_hypotheses]}
-        response = await self.llm.complete(
-            LLMRequest(
-                system=SYSTEM_PROMPT,
-                user=_build_user_prompt(gaps, evidence, data_profiles),
-                fallback=fallback,
-                run_id=run_id,
-                agent="hypothesis_generator",
+        chain = (
+            PROMPT
+            | LLMClientRunnable(self.llm).bind(fallback=fallback, run_id=run_id, agent="hypothesis_generator")
+            | FallbackParser(
+                lambda content: _normalize_hypotheses(content, fallback_hypotheses, evidence),
+                fallback_hypotheses,
             )
         )
-        return _normalize_hypotheses(response.content, fallback_hypotheses, evidence)
+        return await chain.ainvoke({"user_prompt": _build_user_prompt(gaps, evidence, data_profiles, avoid_prior_art=avoid_prior_art)})
 
     def run(self, gaps: list[dict]) -> list[Hypothesis]:
         evidence_ids = gaps[0].get("evidence", []) if gaps else []
@@ -93,6 +96,8 @@ def _build_user_prompt(
     gaps: list[dict],
     evidence: list[EvidenceItem],
     data_profiles: list[DatasetProfile],
+    *,
+    avoid_prior_art: list[str] | None = None,
 ) -> str:
     payload = {
         "gaps": gaps[:6],
@@ -124,6 +129,11 @@ def _build_user_prompt(
             "Bound novelty and expected contribution; do not state unvalidated discoveries as facts.",
         ],
     }
+    if avoid_prior_art:
+        payload["instructions"].append(
+            f"Avoid these already-done prior-art directions: {avoid_prior_art}. "
+            "Generate a hypothesis in a different direction."
+        )
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
 

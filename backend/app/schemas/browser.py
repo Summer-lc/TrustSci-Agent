@@ -14,8 +14,8 @@ class BrowserCaptureResult(BaseModel):
     status_code: int | None = None
     title: str
     html_path: str
-    screenshot_path: str
+    screenshot_path: str = ""
+    blocked_reason: str | None = None
     links: list[dict] = Field(default_factory=list)
     pdf_links: list[dict] = Field(default_factory=list)
     downloaded_pdfs: list[dict] = Field(default_factory=list)
-

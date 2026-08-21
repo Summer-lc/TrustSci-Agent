@@ -98,4 +98,3 @@ LangGraph 不是科学算法本身，它解决的是状态、分支、循环和�
 ## 10. 本轮基准结果
 
 模板方法与固定 baseline 都得到 accuracy 0.8333、macro-F1 0.8492，因此系统正确输出 `completed_negative`。详见 [结果与证据](06_RESULTS_EVIDENCE.md)。
-

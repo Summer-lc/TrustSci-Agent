@@ -4,6 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from app.schemas.run_control import StepEvent
+
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
@@ -15,6 +17,7 @@ class RunStatus(str, Enum):
     paused = "paused"
     completed = "completed"
     failed = "failed"
+    abandoned = "abandoned"
 
 
 class AgentStep(BaseModel):
@@ -24,3 +27,9 @@ class AgentStep(BaseModel):
     started_at: datetime | None = None
     finished_at: datetime | None = None
     artifacts: dict[str, Any] = Field(default_factory=dict)
+    attempts: int = 0
+    error_code: str | None = None
+    error_summary: str | None = None
+    retryable: bool = False
+    skippable: bool = False
+    events: list[StepEvent] = Field(default_factory=list)

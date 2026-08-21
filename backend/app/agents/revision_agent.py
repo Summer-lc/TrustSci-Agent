@@ -1,11 +1,26 @@
+from __future__ import annotations
+
+from app.schemas.feedback_loop import NoveltyVerdict
 from app.schemas.hypothesis import Hypothesis, RevisionRecord
 
 
 class RevisionAgent:
-    """Deterministic hypothesis reviser for the MVP debate loop."""
+    """Deterministic hypothesis reviser for the MVP debate loop + S5 feedback loop."""
 
-    def run(self, hypotheses: list[Hypothesis]) -> list[Hypothesis]:
+    def run(self, hypotheses: list[Hypothesis], novelty_verdict: NoveltyVerdict | None = None) -> list[Hypothesis]:
         for hypothesis in hypotheses:
+            if novelty_verdict and novelty_verdict.claim_revision and hypothesis.selected:
+                before = hypothesis.revised_statement or hypothesis.statement
+                after = novelty_verdict.claim_revision
+                if after != before:
+                    hypothesis.revised_statement = after
+                    hypothesis.revision_history.append(RevisionRecord(
+                        before=before,
+                        after=after,
+                        rationale=f"novelty verdict: {novelty_verdict.verdict} — claim narrowed",
+                    ))
+                continue
+            # original deterministic suffix path
             after = _revised_statement(hypothesis)
             if after != hypothesis.statement:
                 hypothesis.revised_statement = after

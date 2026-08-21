@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from app.config import Settings
 from app.schemas.paper import Paper
 from app.tools.arxiv_client import ArxivClient
+from app.tools.crossref_client import CrossrefClient
 from app.tools.openalex_client import OpenAlexClient
 from app.tools.semantic_scholar_client import SemanticScholarClient
 
@@ -14,11 +15,13 @@ class LiteratureRouter:
         settings: Settings,
         *,
         openalex: OpenAlexClient | None = None,
+        crossref: CrossrefClient | None = None,
         semantic_scholar: SemanticScholarClient | None = None,
         arxiv: ArxivClient | None = None,
     ) -> None:
         self.settings = settings
         self.openalex = openalex or OpenAlexClient(settings)
+        self.crossref = crossref
         self.semantic_scholar = semantic_scholar or SemanticScholarClient(settings)
         self.arxiv = arxiv or ArxivClient()
         self.last_source_stats: dict[str, int] = {}
@@ -30,39 +33,37 @@ class LiteratureRouter:
         max_papers: int,
         enable_semantic_scholar: bool = False,
         enable_arxiv: bool = True,
+        domain: str = "",
     ) -> list[Paper]:
         cleaned_queries = [query.strip() for query in queries if query.strip()]
         if not cleaned_queries or max_papers <= 0:
             self.last_source_stats = {}
             return []
+        seismic_search = _is_seismic_search(domain, cleaned_queries)
+        if seismic_search:
+            cleaned_queries = _expand_seismic_queries(cleaned_queries)
 
         sources = ["openalex"]
+        if self.crossref is not None:
+            sources.append("crossref")
         if enable_semantic_scholar:
             sources.append("semantic_scholar")
         if enable_arxiv:
             sources.append("arxiv")
 
-        per_source_limit = max(1, min(max_papers, max_papers // len(sources) + 1))
+        per_source_limit = max(max_papers + 2, 8)
         candidates: list[Paper] = []
         stats = {source: 0 for source in sources}
 
-        for query in cleaned_queries[:2]:
+        query_limit = 4 if seismic_search else 2
+        for query in cleaned_queries[:query_limit]:
             for source in sources:
                 papers = await self._search_source(source, query, per_source_limit)
                 candidates.extend(papers)
                 stats[source] += len(papers)
 
         deduped = _deduplicate(candidates)
-        relevant = _filter_relevant(deduped, cleaned_queries)
-        ranked = relevant if relevant else deduped
-        ranked.sort(
-            key=lambda paper: (
-                _relevance_score(paper, cleaned_queries),
-                paper.cited_by_count or 0,
-                paper.year or 0,
-            ),
-            reverse=True,
-        )
+        ranked = _rank_results(deduped, cleaned_queries, domain=domain)
         self.last_source_stats = {source: count for source, count in stats.items() if count > 0}
         return ranked[:max_papers]
 
@@ -70,6 +71,8 @@ class LiteratureRouter:
         try:
             if source == "openalex":
                 return await self.openalex.search(query, limit)
+            if source == "crossref" and self.crossref is not None:
+                return await self.crossref.search(query, limit)
             if source == "semantic_scholar":
                 return await self.semantic_scholar.search(query, limit)
             if source == "arxiv":
@@ -158,6 +161,23 @@ def _filter_relevant(papers: list[Paper], queries: Sequence[str]) -> list[Paper]
     return [paper for paper in papers if _relevance_score(paper, queries) > 0]
 
 
+def _rank_results(papers: list[Paper], queries: Sequence[str], *, domain: str = "") -> list[Paper]:
+    if _is_seismic_search(domain, queries):
+        return _rank_seismic_results(papers, queries)
+
+    relevant = _filter_relevant(papers, queries)
+    ranked = relevant if relevant else papers
+    ranked.sort(
+        key=lambda paper: (
+            _relevance_score(paper, queries),
+            paper.cited_by_count or 0,
+            paper.year or 0,
+        ),
+        reverse=True,
+    )
+    return ranked
+
+
 def _relevance_score(paper: Paper, queries: Sequence[str]) -> int:
     terms = _query_terms(queries)
     if len(terms) < 3:
@@ -174,6 +194,55 @@ def _paper_text(paper: Paper) -> str:
             paper.venue or "",
         ]
     ).lower()
+
+
+def _is_seismic_search(domain: str, queries: Sequence[str]) -> bool:
+    if domain == "seismic_event_classification":
+        return True
+    text = " ".join(queries).lower()
+    return any(term in text for term in _SEISMIC_QUERY_HINTS)
+
+
+def _expand_seismic_queries(queries: Sequence[str]) -> list[str]:
+    expanded: list[str] = []
+    for query in [*_SEISMIC_PRIORITY_QUERIES, *queries]:
+        cleaned = query.strip()
+        if cleaned and cleaned.lower() not in {item.lower() for item in expanded}:
+            expanded.append(cleaned)
+    return expanded
+
+
+def _rank_seismic_results(papers: list[Paper], queries: Sequence[str]) -> list[Paper]:
+    if not papers:
+        return []
+
+    def key(paper: Paper) -> tuple[int, int, int, int]:
+        return (
+            _seismic_relevance_score(paper),
+            _relevance_score(paper, queries),
+            paper.cited_by_count or 0,
+            paper.year or 0,
+        )
+
+    seismic = [paper for paper in papers if _seismic_relevance_score(paper) > 0]
+    off_topic = [paper for paper in papers if _seismic_relevance_score(paper) <= 0]
+    if not seismic:
+        return sorted(papers, key=key, reverse=True)
+    return sorted(seismic, key=key, reverse=True) + sorted(off_topic, key=key, reverse=True)
+
+
+def _seismic_relevance_score(paper: Paper) -> int:
+    text = _paper_text(paper)
+    negative = sum(1 for term in _SEISMIC_NEGATIVE_TERMS if term in text)
+    anchor_hits = sum(1 for term in _SEISMIC_ANCHOR_TERMS if term in text)
+    if anchor_hits == 0:
+        return -4 * negative
+
+    score = anchor_hits * 2
+    score += sum(3 for phrase in _SEISMIC_STRONG_PHRASES if phrase in text)
+    score += sum(1 for term in _SEISMIC_METHOD_TERMS if term in text)
+    score -= 4 * negative
+    return score
 
 
 def _query_terms(queries: Sequence[str]) -> set[str]:
@@ -227,3 +296,94 @@ _QUERY_STOPWORDS = {
     "verifiable",
     "with",
 }
+
+_SEISMIC_QUERY_HINTS = (
+    "seismic",
+    "earthquake",
+    "seismology",
+    "seismogram",
+    "waveform",
+    "phasenet",
+    "eqtransformer",
+    "seisbench",
+    "stead",
+    "microseismic",
+)
+
+_SEISMIC_PRIORITY_QUERIES = (
+    "seismic event classification deep learning waveform",
+    "earthquake explosion discrimination waveform classification deep learning",
+    "seismic phase picking phase classification PhaseNet EQTransformer",
+    "earthquake detection seismic waveform CNN transformer",
+)
+
+_SEISMIC_ANCHOR_TERMS = (
+    "seismic",
+    "earthquake",
+    "quake",
+    "seismology",
+    "seismogram",
+    "waveform",
+    "microseismic",
+    "phasenet",
+    "eqtransformer",
+    "eq transformer",
+    "seisbench",
+    "stead",
+    "obspy",
+    "blast",
+    "quarry",
+)
+
+_SEISMIC_STRONG_PHRASES = (
+    "seismic event classification",
+    "seismic event detection",
+    "earthquake detection",
+    "earthquake classification",
+    "earthquake explosion",
+    "earthquake-explosion",
+    "explosion discrimination",
+    "phase picking",
+    "phase-picking",
+    "phase classification",
+    "seismic phase",
+    "seismic waveform",
+    "waveform classification",
+    "microseismic event",
+)
+
+_SEISMIC_METHOD_TERMS = (
+    "deep learning",
+    "neural",
+    "cnn",
+    "convolutional",
+    "transformer",
+    "resnet",
+    "model",
+    "method",
+    "classification",
+    "detection",
+    "picker",
+    "benchmark",
+)
+
+_SEISMIC_NEGATIVE_TERMS = (
+    "covid",
+    "sentiment",
+    "recommender",
+    "recommendation",
+    "thrombectomy",
+    "ct imaging",
+    "stroke",
+    "medical",
+    "xray",
+    "x-ray",
+    "lung",
+    "tumor",
+    "cancer",
+    "volcanic ash",
+    "gaussian radial basis",
+    "active subspace",
+    "polynomial chaos",
+    "mathematics of deep learning",
+)

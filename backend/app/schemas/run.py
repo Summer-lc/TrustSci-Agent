@@ -12,8 +12,24 @@ from app.schemas.experiment import ExperimentPlan
 from app.schemas.hypothesis import Hypothesis
 from app.schemas.knowledge import KnowledgeCard
 from app.schemas.paper import Paper
+from app.schemas.idea import IdeaBrief
+from app.schemas.mode import ResearchMode
 from app.schemas.planner import PerspectiveQuestion
+from app.schemas.seismic import SeismicDataProfile
+from app.schemas.baseline import BaselineCandidate
+from app.schemas.baseline_intake import BaselineIntake, BaselineIntakeRequest, BaselineStrategy
+from app.schemas.arena import HypothesisArenaResult
+from app.schemas.code_experiment import CodeExperimentResult
+from app.schemas.experiment_assistance import (
+    AblationAnalysis, ExperimentAssistanceInput, ResultEvaluation, ResultInterpretation,
+)
+from app.schemas.feedback_loop import BaselineGateStatus, NoveltyVerdict
 from app.schemas.report import ResearchReport
+
+
+def build_run_display_name(question: str, *, max_length: int = 32) -> str:
+    normalized = " ".join(question.split()) or "未命名研究任务"
+    return normalized if len(normalized) <= max_length else f"{normalized[:max_length - 1]}…"
 
 
 class ResearchConstraints(BaseModel):
@@ -29,14 +45,26 @@ class ResearchConstraints(BaseModel):
 class ResearchRunCreate(BaseModel):
     domain: str = "energy_materials"
     question: str
+    mode: ResearchMode = "discovery"
     constraints: ResearchConstraints = Field(default_factory=ResearchConstraints)
 
 
 class ResearchRun(BaseModel):
     run_id: str = Field(default_factory=lambda: f"run_{uuid4().hex[:10]}")
+    display_name: str = ""
     domain: str
     question: str
     constraints: ResearchConstraints
+    mode: ResearchMode = "discovery"
+    idea_brief: IdeaBrief | None = None
+    intent: dict | None = None
+    seismic_data_profile: SeismicDataProfile | None = None
+    baseline_strategy: BaselineStrategy = "none"
+    manual_baseline: BaselineIntakeRequest | None = None
+    baseline_intake: BaselineIntake | None = None
+    baseline_candidates: list[BaselineCandidate] = Field(default_factory=list)
+    novelty_report: dict | None = None
+    arena_result: HypothesisArenaResult | None = None
     status: RunStatus = RunStatus.created
     current_stage: str = "created"
     progress: float = 0
@@ -61,5 +89,28 @@ class ResearchRun(BaseModel):
     baseline_result_card: BaselineResultCard | None = None
     hypotheses: list[Hypothesis] = Field(default_factory=list)
     experiment_plan: ExperimentPlan | None = None
+    experiment_assistance: ExperimentAssistanceInput | None = None
+    code_experiment: CodeExperimentResult | None = None
+    result_evaluation: ResultEvaluation | None = None
+    ablation_analysis: AblationAnalysis | None = None
+    result_interpretation: ResultInterpretation | None = None
+    # S5 feedback-loop state
+    novelty_verdict: NoveltyVerdict | None = None
+    novelty_status: Literal["not_checked", "ok", "low_novelty"] = "not_checked"
+    novelty_round: int = 0
+    baseline_gate_status: BaselineGateStatus | None = None
+    re_search_round: int = 0
+    evidence_changed: bool = False
+    hypothesis_changed: bool = False
+    baseline_changed: bool = False
+    experiment_redesign_round: int = 0
+    macro_round: int = 0
+    switchback_used: bool = False
+    code_experiment_mode: str | None = None
     report: ResearchReport | None = None
     errors: list[str] = Field(default_factory=list)
+    resume_count: int = 0
+    trust_warnings: list[str] = Field(default_factory=list)
+    last_action: dict[str, Any] | None = None
+    control_action: Literal["none", "pause", "abandon"] = "none"
+    pause_reason: Literal["user", "review", "error"] | None = None
