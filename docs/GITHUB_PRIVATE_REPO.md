@@ -3,7 +3,7 @@
 The repository is now connected to:
 
 ```bash
-git@github.com:maodousa/TrustSci-Agent.git
+git@github.com:Summer-lc/TrustSci-Agent.git
 ```
 
 Keep the GitHub repository private and invite collaborators with push permission only when needed.

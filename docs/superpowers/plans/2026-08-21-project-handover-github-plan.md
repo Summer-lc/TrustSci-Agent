@@ -624,7 +624,7 @@ git remote -v
 git ls-remote --heads origin
 ```
 
-Expected: `origin` points to `https://github.com/maodousa/TrustSci-Agent.git` and the remote is reachable without exposing credentials.
+Expected: `origin` points to `https://github.com/Summer-lc/TrustSci-Agent.git` and the remote is reachable without exposing credentials.
 
 - [ ] **Step 4: Push only the dedicated branch**
 

@@ -14,7 +14,7 @@
 首次获取仓库：
 
 ```powershell
-git clone https://github.com/maodousa/TrustSci-Agent.git
+git clone https://github.com/Summer-lc/TrustSci-Agent.git
 Set-Location TrustSci-Agent
 git switch codex/project-handover-docs
 git rev-parse --short HEAD
